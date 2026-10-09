@@ -25,6 +25,7 @@ USER_FILE = "cockpit.md"
 TEMPORARY_USER_FILE = ".cockpit.md.tmp"
 LEGACY_STATE_FILE = "state.md"
 BACKUPS = "backups"
+PREFERENCES_TARGET = os.path.join("memory", "preferences.md")
 PRIVATE_DIRECTORY_MODE = 0o700
 CHANGED_SUFFIX = ".changed-after-backup"
 MOVED_DIRECTORIES = ("saas-project", "tools-project", "repo", "secrets")
@@ -344,18 +345,32 @@ UNDO = {
 }
 
 
-def is_safe_entry(kind, relative):
-    if kind not in UNDO or not relative or os.path.isabs(relative) or ".." in relative.split("/"):
-        return False
+def own_entries(project):
+    memory = os.path.join(project, "memory")
+    files = [TEMPORARY_USER_FILE, PREFERENCES_TARGET, os.path.join(project, ".relink")]
+    files += [os.path.join(project, name) for name in (LEGACY_STATE_FILE,) + PROJECT_FILES]
+    files += [os.path.join(memory, topic + ".md") for topic in PROJECT_TOPICS]
+    directories = [BACKUPS, "projects", project, memory, os.path.dirname(PREFERENCES_TARGET)]
 
-    return kind != CREATED_BACKUP or BACKUP_PATH.fullmatch(relative) is not None
+    entries = {(CREATED_FILE, path) for path in files}
+    entries |= {(CREATED_DIRECTORY, path) for path in directories}
+    entries |= {(MOVED, os.path.join(project, name)) for name in MOVED_DIRECTORIES}
+    return entries
 
 
 class Ledger:
     def __init__(self, descriptor):
         self.descriptor = descriptor
+        self.own_backups = set()
 
-    def entries(self):
+    def is_empty(self):
+        return os.fstat(self.descriptor).st_size == 0
+
+    def entries(self, project):
+        trusted = own_entries(project) | {(CREATED_BACKUP, path) for path in self.own_backups}
+        return [entry for entry in self.recorded() if entry in trusted]
+
+    def recorded(self):
         os.lseek(self.descriptor, 0, os.SEEK_SET)
         data = b""
 
@@ -368,11 +383,12 @@ class Ledger:
             data += chunk
 
         complete_lines = data.decode("utf-8", "ignore").split("\n")[:-1]
-        entries = [tuple(line.split(" ", 1)) for line in complete_lines if " " in line]
-
-        return [entry for entry in entries if is_safe_entry(*entry)]
+        return [tuple(line.split(" ", 1)) for line in complete_lines if " " in line]
 
     def record(self, kind, relative):
+        if kind == CREATED_BACKUP:
+            self.own_backups.add(relative)
+
         os.write(self.descriptor, as_bytes("{} {}\n".format(kind, relative)))
         os.fsync(self.descriptor)
 
@@ -390,10 +406,10 @@ class Ledger:
         except OSError:
             pass
 
-    def undo(self, root):
+    def undo(self, root, project):
         failed = []
 
-        for kind, relative in reversed(self.entries()):
+        for kind, relative in reversed(self.entries(project)):
             try:
                 UNDO[kind](root, relative)
             except Exception:
@@ -417,15 +433,23 @@ class Lock:
 
     def try_to_take(self):
         try:
-            descriptor = os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_APPEND, 0o600)
+            descriptor = os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600)
         except IsADirectoryError:
             raise MigrationError("a folder named {} is in the way".format(LOCK_NAME))
+        except OSError as error:
+            if error.errno != errno.ELOOP:
+                raise
+
+            raise MigrationError("a link named {} is in the way".format(LOCK_NAME))
 
         try:
             fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError:
+        except BlockingIOError:
             os.close(descriptor)
             return False
+        except OSError:
+            os.close(descriptor)
+            raise MigrationError("the saved setup could not be locked")
 
         if not self.is_still_the_lock_file(descriptor):
             os.close(descriptor)
@@ -502,7 +526,7 @@ class Migration:
         if self.is_committed():
             raise MigrationError("{} is not a file".format(USER_FILE))
 
-        if not self.ledger.undo(self.root):
+        if not self.ledger.undo(self.root, self.project):
             raise MigrationError("an interrupted update could not be undone")
 
     def roll_back(self):
@@ -513,7 +537,7 @@ class Migration:
             signal.signal(number, signal.SIG_IGN)
 
         try:
-            self.ledger.undo(self.root)
+            self.ledger.undo(self.root, self.project)
         except Exception:
             pass
 
@@ -546,8 +570,8 @@ class Migration:
             self.import_topic(topic + ".md", self.project, "memory", topic + ".md")
 
         if os.path.isfile(self.at_root("preferences.md")):
-            self.ensure_directory("memory")
-            self.import_topic("preferences.md", "memory", "preferences.md")
+            self.ensure_directory(os.path.dirname(PREFERENCES_TARGET))
+            self.import_topic("preferences.md", PREFERENCES_TARGET)
 
     def build(self):
         self.ensure_directory("projects")
@@ -623,8 +647,9 @@ def migrate(root, state, ledger):
         migration.roll_back()
         raise
 
-    ledger.discard()
+    reach("written", can_fail=False)
     announce_update()
+    ledger.discard()
     reach("committed", can_fail=False)
     retire_legacy_files(root, migration.backup)
 
@@ -686,7 +711,10 @@ def carry_out(root, ledger):
         migrate(root, state, ledger)
 
     if work == CLEANUP:
-        ledger.discard()
+        if not ledger.is_empty():
+            announce_update()
+            ledger.discard()
+
         finish_cleanup(root)
 
     return 0

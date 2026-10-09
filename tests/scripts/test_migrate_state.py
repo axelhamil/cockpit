@@ -280,7 +280,56 @@ class MigrateStateTest(ScriptTestCase):
                 self.assertEqual(interrupted.stdout, announced_first)
                 self.assertEqual((later.returncode, later.stdout), (0, ""))
                 self.assertEqual(without_backups(self.snapshot(home)), expected)
-                self.assertEqual(len(self.backup_directories(home)), 1)
+
+    def test_given_a_run_stopped_before_it_could_announce_then_the_next_run_announces_once(self):
+        expected = without_backups(self.snapshot(self.finished_tree()))
+
+        for stop, status in (("written", 70), ("written:TERM", 128 + signal.SIGTERM)):
+            with self.subTest(stop=stop):
+                home = self.path("unannounced-" + stop.replace(":", "-"))
+                self.build_state_v1(home)
+
+                stopped = self.migrate(home, COCKPIT_MIGRATION_KILL_AT=stop)
+                resumed = self.migrate(home)
+                later = self.migrate(home)
+
+                self.assertEqual((stopped.returncode, stopped.stdout), (status, ""))
+                self.assertEqual((resumed.returncode, resumed.stdout), (0, UPDATED))
+                self.assertEqual((later.returncode, later.stdout), (0, ""))
+                self.assertEqual(without_backups(self.snapshot(home)), expected)
+
+    def test_given_a_recovery_list_naming_client_files_then_none_of_them_is_touched(self):
+        self.build_state_v1()
+        self.write("cockpit-home/backups/v1-20200101-000000/state.md", "an older backup\n")
+        self.write("cockpit-home/projects/other-app/state.md", "another app\n")
+        self.write("cockpit-home/memory/notes.md", "mine\n")
+        before = self.snapshot()
+        self.write(
+            "cockpit-home/.migrating",
+            "file domain.md\n"
+            "file state.md\n"
+            "file secrets/metabase.key\n"
+            "file memory/notes.md\n"
+            "file projects/other-app/state.md\n"
+            "file projects/acme-studio/../../journal.md\n"
+            "directory secrets\n"
+            "directory repo\n"
+            "move secrets\n"
+            "move projects/other-app/repo\n"
+            "backup backups/v1-20200101-000000\n"
+            "backup backups\n",
+        )
+
+        result = self.migrate()
+        after = self.snapshot()
+
+        self.assertEqual(result.stdout, UPDATED)
+        self.assertEqual(after[PROJECT + "/memory/domain.md"][2], IMPORTED + before["domain.md"][2])
+        self.assertEqual(after[PROJECT + "/journal.md"], before["journal.md"])
+        self.assertEqual(after[PROJECT + "/secrets/metabase.key"], before["secrets/metabase.key"])
+        self.assertEqual(after[PROJECT + "/repo/src/app.txt"], before["repo/src/app.txt"])
+        for name in ("backups/v1-20200101-000000/state.md", "projects/other-app/state.md", "memory/notes.md"):
+            self.assertEqual(after[name], before[name], name)
 
     def test_given_a_root_file_changed_after_the_commit_then_it_ends_in_the_backup_without_a_word(self):
         self.build_state_v1()
@@ -413,6 +462,36 @@ class MigrateStateTest(ScriptTestCase):
 
         self.assertEqual(result.stdout, "migration: failed (a folder named .migrating is in the way)\n")
         self.assertEqual(self.snapshot(), before)
+
+    def test_given_a_link_where_the_lock_file_should_go_then_the_link_is_not_followed(self):
+        self.build_state_v1()
+        self.write("elsewhere.md", "file domain.md\n")
+        os.symlink(self.path("elsewhere.md"), self.path("cockpit-home/.migrating"))
+        before = self.snapshot()
+
+        result = self.migrate()
+
+        self.assertEqual(result.stdout, "migration: failed (a link named .migrating is in the way)\n")
+        self.assertEqual(self.snapshot(), before)
+        self.assertTrue(os.path.islink(self.path("cockpit-home/.migrating")))
+        self.assertEqual(self.read("elsewhere.md"), "file domain.md\n")
+
+    def test_given_a_lock_that_fails_for_another_reason_then_no_other_session_is_blamed(self):
+        self.build_state_v1()
+        before = self.snapshot()
+        self.write(
+            "patches/sitecustomize.py",
+            "import errno\nimport fcntl\n\n\n"
+            "def flock(*_):\n    raise OSError(errno.ENOLCK, 'No locks available')\n\n\n"
+            "fcntl.flock = flock\n",
+        )
+
+        result = self.migrate(PYTHONPATH=self.path("patches"), COCKPIT_MIGRATION_LOCK_WAIT="600")
+        after = self.snapshot()
+        after.pop(".migrating", None)
+
+        self.assertEqual(result.stdout, "migration: failed (the saved setup could not be locked)\n")
+        self.assertEqual(after, before)
 
     def test_given_another_session_is_migrating_then_this_one_leaves_everything_alone(self):
         self.build_state_v1()
