@@ -22,7 +22,7 @@ Whatever lands on `main` reaches every client at their next session, with nobody
 ```
 sh tests/scripts/run.sh                        # all script tests (unittest)
 sh tests/scripts/run.sh -k test_session_check  # one file, one class or one test by name
-shellcheck scripts/*.sh tests/scripts/*.sh tests/fixtures/*/fixture.sh evals/*/fixture.sh
+shellcheck scripts/*.sh .github/scripts/*.sh tests/scripts/*.sh tests/fixtures/*/fixture.sh evals/*/fixture.sh
 claude plugin validate .
 claude plugin eval . --scaffold --runs 1       # behaviour evals, results in evals/results/ (ignored)
 ```
