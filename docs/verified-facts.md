@@ -230,6 +230,7 @@ FAIL if <what a wrong or missing response looks like>.
 - `gh auth login --hostname github.com --git-protocol https --web` without a terminal (stdin closed, gh 2.101.0 on Linux): prints `One-time code (XXXX-XXXX) copied to clipboard` and `Open this URL to continue in your web browser: https://github.com/login/device`, does not wait for Enter, does not open the browser, then polls until approval.
 - `gh auth setup-git [-h|--hostname <host>] [-f|--force]`: sets gh as git credential helper for all authenticated hosts; fails when none is authenticated; `--force` needs `--hostname`.
 - `gh api <endpoint> [-X|--method M] [-f|--raw-field k=v] [-F|--field k=v] [--input <file|->] [-H|--header] [--hostname] [-i|--include] [-q|--jq] [--paginate] [--slurp] [-p|--preview] [--cache] [--silent] [-t|--template] [--verbose]`.
+- `gh issue view <number> --json comments` and `gh pr view <number> --json comments,reviews` (run on 2026-10-09 on a public repository): each comment and each review holds `author.login`, `authorAssociation` (`NONE` for someone outside the repository) and `body`.
 - Default method is GET, but POST as soon as any `-f`, `-F` or `--input` parameter is added. `--method GET` keeps fields as a query string. `graphql` is an endpoint (always POST in practice with `-f query=...`).
 
 ## State layout v2 (checked 2026-10-09 by a real run)
