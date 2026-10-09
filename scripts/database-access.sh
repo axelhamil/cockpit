@@ -7,7 +7,6 @@ fi
 
 railway_bin=${RAILWAY_BIN:-railway}
 clipboard_command=${COCKPIT_CLIPBOARD:-pbcopy}
-state_home=${COCKPIT_HOME:-$HOME/.cockpit}
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 
 fail() {
@@ -15,9 +14,10 @@ fail() {
   exit "${2:-1}"
 }
 
-usage='Usage: database-access.sh --service <postgres service> [--private]'
+usage='Usage: database-access.sh --service <postgres service> [--private] [--project <slug>]'
 variable_name=DATABASE_PUBLIC_URL
 service=
+project=
 
 while [ "$#" -gt 0 ]; do
   case $1 in
@@ -33,6 +33,14 @@ while [ "$#" -gt 0 ]; do
       service=$2
       shift 2
       ;;
+    --project)
+      if [ "$#" -lt 2 ]; then
+        fail "$usage" 2
+      fi
+
+      project=$2
+      shift 2
+      ;;
     *)
       fail "$usage" 2
       ;;
@@ -43,7 +51,8 @@ case $service in
   '' | -*) fail "$usage" 2 ;;
 esac
 
-saas_dir=$state_home/saas-project
+project_directory=$(sh "$script_dir/project-directory.sh" --project "$project") || exit 1
+saas_dir=$project_directory/saas-project
 
 if [ ! -d "$saas_dir" ]; then
   fail "The folder linked to the app's Railway project is missing ($saas_dir). Run the Railway step of the onboarding first."

@@ -27,6 +27,7 @@ def project(*instances):
 class HealthCheckTest(ScriptTestCase):
     def setUp(self):
         super().setUp()
+        self.write("cockpit-home/state.md", "---\nschema_version: 1\n---\n")
         self.write("cockpit-home/saas-project/.keep", "")
         self.env["COCKPIT_HEALTH_WAIT"] = "5"
 
@@ -103,4 +104,26 @@ class HealthCheckTest(ScriptTestCase):
 
         result = self.check()
 
+        self.assertEqual(result.stdout, "")
+
+    def test_given_several_apps_then_the_one_named_is_checked_in_its_own_folder(self):
+        self.write_v2_state("acme-studio", "beta-shop")
+        self.write("cockpit-home/projects/beta-shop/saas-project/.keep", "")
+        self.write("status.json", json.dumps(project(("web", "FAILED"))))
+        self.install_fake_railway('pwd >"' + self.path("where") + '"\ncat "' + self.path("status.json") + '"\n')
+
+        result = self.run_script("health-check.sh", "--project", "beta-shop")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('service "web"', result.stdout)
+        self.assertEqual(self.read("where").strip(), self.path("cockpit-home/projects/beta-shop/saas-project"))
+
+    def test_given_several_apps_and_none_named_then_nothing_is_checked(self):
+        self.write_v2_state("acme-studio", "beta-shop")
+        self.write("cockpit-home/projects/beta-shop/saas-project/.keep", "")
+        self.railway_answers(project(("web", "FAILED")))
+
+        result = self.check()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "")

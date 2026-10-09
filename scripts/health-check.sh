@@ -8,9 +8,30 @@ fi
 PATH=$PATH:${HOME:-}/.railway/bin:${HOME:-}/.local/bin
 railway_bin=${RAILWAY_BIN:-railway}
 wait_seconds=${COCKPIT_HEALTH_WAIT:-6}
-state_home=${COCKPIT_HOME:-${HOME:-}/.cockpit}
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-saas_dir=$state_home/saas-project
+usage='Usage: health-check.sh [--project <slug>]'
+project=
+
+while [ "$#" -gt 0 ]; do
+  case $1 in
+    --project)
+      if [ "$#" -lt 2 ]; then
+        printf '%s\n' "$usage" >&2
+        exit 2
+      fi
+
+      project=$2
+      shift 2
+      ;;
+    *)
+      printf '%s\n' "$usage" >&2
+      exit 2
+      ;;
+  esac
+done
+
+project_directory=$(sh "$script_dir/project-directory.sh" --project "$project" 2>/dev/null) || exit 0
+saas_dir=$project_directory/saas-project
 
 if [ ! -d "$saas_dir" ]; then
   exit 0

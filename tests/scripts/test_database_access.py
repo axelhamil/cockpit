@@ -10,6 +10,7 @@ PUBLIC_URL = "postgresql://postgres:s3cr3t-p%40ss@shuttle.proxy.rlwy.net:15140/r
 class DatabaseAccessTest(ScriptTestCase):
     def setUp(self):
         super().setUp()
+        self.write("cockpit-home/state.md", "---\nschema_version: 1\n---\n")
         self.write("cockpit-home/saas-project/.keep", "")
         self.env["COCKPIT_CLIPBOARD"] = "cat > " + shlex.quote(self.path("clipboard"))
         self.railway_answers({"DATABASE_PUBLIC_URL": PUBLIC_URL, "PGDATA": "/var/lib/postgresql/data"})
@@ -119,3 +120,22 @@ class DatabaseAccessTest(ScriptTestCase):
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("Usage", result.stderr)
+
+    def test_given_several_apps_then_the_service_is_read_in_the_folder_of_the_app_named(self):
+        self.write_v2_state("acme-studio", "beta-shop")
+        self.write("cockpit-home/projects/beta-shop/saas-project/.keep", "")
+        self.write("variables.json", json.dumps({"DATABASE_PUBLIC_URL": PUBLIC_URL}))
+        self.install_fake_railway('pwd >"' + self.path("where") + '"\ncat "' + self.path("variables.json") + '"\n')
+
+        result = self.access("--service", "Postgres", "--project", "beta-shop")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.read("where").strip(), self.path("cockpit-home/projects/beta-shop/saas-project"))
+
+    def test_given_several_apps_and_none_named_then_the_error_names_the_apps(self):
+        self.write_v2_state("acme-studio", "beta-shop")
+
+        result = self.access("--service", "Postgres")
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("acme-studio, beta-shop", result.stderr)

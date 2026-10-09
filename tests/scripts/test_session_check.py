@@ -226,3 +226,33 @@ class SessionCheckTest(ScriptTestCase):
         self.assertNotIn("plugin version changed", result.stdout)
         self.assertNotIn("not recorded", result.stdout)
 
+
+
+class SessionCheckLayoutTest(ScriptTestCase):
+    def setUp(self):
+        super().setUp()
+        self.env["PATH"] = os.environ["PATH"]
+        self.install_fake_railway("exit 1\n")
+
+    def check(self, **environment):
+        return self.run_script("session-check.sh", env=environment)
+
+    def lines(self, **environment):
+        return self.check(**environment).stdout.splitlines()
+
+    def test_given_no_state_then_the_first_app_is_announced_as_app(self):
+        lines = self.lines()
+
+        self.assertIn("active project: app", lines)
+        self.assertIn("project directory: " + self.home + "/projects/app", lines)
+        self.assertIn("state directory: " + self.home, lines)
+        self.assertTrue(any(line.startswith("onboarding: absent") for line in lines))
+
+    def test_given_a_half_written_version_1_state_then_the_app_folder_is_the_state_folder(self):
+        self.write("cockpit-home/state.md", "---\nschema_version: 1\nlanguage: fr\n")
+
+        lines = self.lines()
+
+        self.assertIn("active project: legacy", lines)
+        self.assertIn("project directory: " + self.home, lines)
+        self.assertIn("onboarding: unknown", lines)

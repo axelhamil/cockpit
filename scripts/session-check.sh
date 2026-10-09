@@ -75,6 +75,13 @@ known_version() {
   esac
 }
 
+known_slug() {
+  case $1 in
+    '' | *[!a-z0-9-]*) printf 'unknown' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
 scripts_directory() {
   CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P
 }
@@ -122,6 +129,22 @@ print_dependencies() {
   set +f
 }
 
+announce_project() {
+  if [ -z "${scripts_dir:-}" ] || ! project_directory=$(sh "$scripts_dir/project-directory.sh" 2>/dev/null); then
+    printf 'active project: none\n'
+    return 0
+  fi
+
+  project_slug=legacy
+
+  if [ "$project_directory" != "$state_home" ]; then
+    project_slug=$(known_slug "${project_directory##*/}")
+  fi
+
+  printf 'active project: %s\n' "$project_slug"
+  printf 'project directory: %s\n' "$project_directory"
+}
+
 print_context() {
   printf 'cockpit session context\n'
 
@@ -137,6 +160,7 @@ print_context() {
   fi
 
   printf 'state directory: %s\n' "$state_home"
+  announce_project
 
   if [ ! -e "$state_file" ]; then
     printf 'onboarding: absent (no state file yet, onboarding has to run first)\n'
