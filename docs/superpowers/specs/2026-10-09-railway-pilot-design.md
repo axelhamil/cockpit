@@ -65,9 +65,14 @@ railway-pilot/
   skills/report/SKILL.md        package journal and proposals for the maintainer
   hooks/hooks.json
   scripts/
-    guard.sh                    PreToolUse guard
+    guard.sh, guard.py, guardlib/   PreToolUse guard
     session-check.sh            SessionStart: state and dependency summary
+    railway-tools.sh            Railway changes, tools project only
     create-read-role.sh         read-only Postgres role for a tool
+    apply-settings.sh           guard configuration, permission rules, auto-update
+    permissions.json            permission rules merged into the user settings
+    install-gh.sh               GitHub CLI without sudo
+    github-login.sh             GitHub sign-in from a token on the clipboard
   evals/                        claude plugin eval cases
   tests/                        guard test table
   CHANGELOG.md
@@ -89,6 +94,9 @@ The plugin directory is read-only on the client. The guard blocks any write to i
 - `journal.md`: dated history of changes, merges and escalations.
 - `proposals.md`: change requests for the plugin core, English, for the maintainer.
 - `repo/`: working clone of the SaaS repo.
+- `saas-project/` and `tools-project/`: directories linked to each Railway project.
+- `secrets/`: API keys of tools, never read into the conversation.
+- `guard.conf`: SaaS project id and protected branches, written once by `apply-settings.sh`.
 
 `state-schema.md` versions the format. On each run `SKILL.md` compares the state version with the plugin version and migrates when needed, with a journal line. Files stay short: merge, correct, delete what is obsolete. No personal data and no secret in any state file.
 
@@ -157,7 +165,9 @@ Phases:
 - Forbidden on GitHub: push to the deployed branch, any force push, `gh repo delete|edit`, `gh release`, `gh workflow`, `gh secret`, `gh variable`, `gh auth login` without `--with-token`, `gh api` with any method other than GET.
 - Forbidden edits: anything under the plugin directory, and in the repo clone `.github/workflows/`, environment files and Railway config files.
 
-`create-read-role.sh` is the only path to `railway ssh`, and it runs a fixed set of statements.
+`create-read-role.sh` is the only path to `railway ssh`, and it runs a fixed set of statements. Every other Railway change goes through `railway-tools.sh`, which refuses to act on the SaaS project.
+
+The guard is a safeguard against mistakes and pressure, not a sandbox: a script written to disk and then run, or an interpreter building a command name, is outside what a text filter can see. The damage is bounded by the token scope, the pull request flow and the backups.
 
 ### Permission rules
 
@@ -180,7 +190,7 @@ Written into `~/.claude/settings.json` at onboarding. `allow` for read commands 
 **Connect to SaaS data**: Railway projects do not share a private network, so the tool reaches the SaaS database through its public TCP proxy (egress billed at 0.05 USD per GB). The client is told about the exposure and the cost before confirming. Then `create-read-role.sh <tool>`:
 
 - creates `<tool>_read` with SELECT on the business schema, minus the tables excluded at onboarding, `default_transaction_read_only`, `statement_timeout`, no role membership;
-- puts the connection string on the clipboard and prints only host, port, database and user;
+- puts the password on the clipboard and prints only host, port, database and user;
 - Claude guides the client to paste it in the tool's database screen.
 
 The same script revokes a role. Roles are listed in `state.md`.

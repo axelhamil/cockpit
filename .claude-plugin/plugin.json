@@ -1,0 +1,10 @@
+{
+  "name": "railway-pilot",
+  "description": "Lets a non-technical team run the tools around their SaaS on Railway by talking to Claude: deploy a tool from a template, connect it to their data, build its content, make small changes to the app, and hand the rest to a developer.",
+  "author": {
+    "name": "Axel Hamilcaro",
+    "email": "axel.hamilcaro-pro@outlook.fr"
+  },
+  "repository": "https://github.com/axelhamil/railway-pilot",
+  "keywords": ["railway", "metabase", "n8n", "operations", "non-technical"]
+}

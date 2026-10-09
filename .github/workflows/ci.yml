@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guard tests
+        run: python3 -m unittest discover -s tests/guard
+      - name: Script tests
+        run: sh tests/scripts/run.sh
+
+  guard-on-python-3-9:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - run: python3 -m unittest discover -s tests/guard
+      - run: sh tests/scripts/run.sh
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck scripts/*.sh tests/scripts/*.sh evals/*/fixture.sh
+
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v6

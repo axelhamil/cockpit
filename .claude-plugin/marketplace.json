@@ -1,0 +1,14 @@
+{
+  "name": "railway-pilot",
+  "description": "railway-pilot plugin for Claude Code",
+  "owner": {
+    "name": "Axel Hamilcaro"
+  },
+  "plugins": [
+    {
+      "name": "railway-pilot",
+      "source": ".",
+      "description": "Run the tools around a SaaS on Railway by talking to Claude"
+    }
+  ]
+}
