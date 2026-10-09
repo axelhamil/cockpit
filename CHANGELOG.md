@@ -1,3 +1,12 @@
+## [2.1.1](https://github.com/axelhamil/cockpit/compare/v2.1.0...v2.1.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **scripts:** install the GitHub CLI only from its official release ([79deda1](https://github.com/axelhamil/cockpit/commit/79deda12c072ae94474d54d58d3bb460c776b950))
+* **settings:** stop the settings step from pointing updates elsewhere ([97e65e9](https://github.com/axelhamil/cockpit/commit/97e65e9b147559957719f8331a128e056e040baa))
+* **skills:** act on a GitHub comment only when the developer wrote it ([780d788](https://github.com/axelhamil/cockpit/commit/780d7888fc635282821a88172bc6d7fc29fc7276))
+
 # [2.1.0](https://github.com/axelhamil/cockpit/compare/v2.0.0...v2.1.0) (2026-10-09)
 
 
