@@ -47,7 +47,7 @@ if [ ! -f "$state_file" ]; then
 fi
 
 section_line() {
-  sed -n "/^## $1\$/,/^## /{/^$2/p;}" "$state_file" | sed -n '1p' | tr -d '\r'
+  tr -d '\r' <"$state_file" | sed -n "/^## $1\$/,/^## /{/^$2/p;}" | sed -n '1p'
 }
 
 is_identifier() {
@@ -90,11 +90,33 @@ value_of() {
   printf '%s' "$value"
 }
 
+stop_link() {
+  if [ -n "$link_pid" ]; then
+    kill "$link_pid" 2>/dev/null || :
+  fi
+
+  exit "$1"
+}
+
 link_folder() {
-  if ! (cd "$project_directory/$1" && shift && "$railway_bin" link "$@" </dev/null >/dev/null 2>&1); then
-    fail "Railway did not link the folder '$1'. Check that 'railway whoami' answers and that this account is a member of the project, then run this again."
+  folder=$1
+  shift
+
+  (cd "$project_directory/$folder" && exec "$railway_bin" link "$@" </dev/null >/dev/null 2>&1) &
+  link_pid=$!
+
+  link_status=0
+  wait "$link_pid" || link_status=$?
+  link_pid=
+
+  if [ "$link_status" != 0 ]; then
+    fail "Railway did not link the folder '$folder'. Check that 'railway whoami' answers and that this account is a member of the project, then run this again."
   fi
 }
+
+link_pid=
+trap 'stop_link 143' TERM
+trap 'stop_link 130' INT
 
 has_saas=false
 has_tools=false
@@ -106,7 +128,7 @@ if [ -d "$project_directory/saas-project" ]; then
   app_service=$(value_of 'SaaS project' '- App service:') || fail "The app service of $state_file cannot be read, so the SaaS folder cannot be linked again."
 fi
 
-if [ -d "$project_directory/tools-project" ]; then
+if [ -d "$project_directory/tools-project" ] && [ -n "$(section_line 'Tools project' '- Project:')" ]; then
   has_tools=true
   tools_id=$(project_id_of 'Tools project') || fail "The tools project of $state_file has no readable id, so its folder cannot be linked again."
 fi
