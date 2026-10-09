@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/axelhamil/cockpit/compare/v2.0.0...v2.1.0) (2026-10-09)
+
+
+### Features
+
+* **state:** update the saved setup by itself, with a backup kept ([080e99b](https://github.com/axelhamil/cockpit/commit/080e99b8d509d7a8ccd9e199979a64f15f624c9b))
+
 # [2.0.0](https://github.com/axelhamil/cockpit/compare/v1.6.0...v2.0.0) (2026-10-09)
 
 
