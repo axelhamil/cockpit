@@ -231,12 +231,20 @@ FAIL if <what a wrong or missing response looks like>.
 - `gh api <endpoint> [-X|--method M] [-f|--raw-field k=v] [-F|--field k=v] [--input <file|->] [-H|--header] [--hostname] [-i|--include] [-q|--jq] [--paginate] [--slurp] [-p|--preview] [--cache] [--silent] [-t|--template] [--verbose]`.
 - Default method is GET, but POST as soon as any `-f`, `-F` or `--input` parameter is added. `--method GET` keeps fields as a query string. `graphql` is an endpoint (always POST in practice with `-f query=...`).
 
+## State layout v2 (checked 2026-10-09 by a real run)
+
+- Railway keeps the link of a folder in its own config, not in the folder: `~/.railway/config.json` (CLI 4.68.0) has a `projects` object keyed by absolute directory path. Each entry holds `project`, `name`, `environment`, `environmentName`, `service` and `projectPath`. A moved folder is therefore no longer linked.
+- Two directories linked to two different Railway projects coexist in that file (CLI 4.68.0).
+- Railway CLI 5.64.1: a folder moved after railway link reports no linked project; railway link -p <id> -e production run in the moved folder, with no terminal, links it again (exit 0); a second folder linked to another project keeps its own project.
+- A project scheduled for deletion is still listed by railway list --json (with a deletedAt date), and railway link -p <id> answers Project "<id>" not found in workspace (CLI 5.64.1).
+
 ## Not verified
 
 - Linux musl binary only; macOS arm64/x86_64 binaries and `install.sh` on a Mac not run.
 - `railway ssh -s <svc> -- <cmd>`: `--` handling, exit code propagation and stdin forwarding (heredoc SQL into `psql`) not run, no throwaway project.
 - `railway ssh` into the Postgres service running `psql` non-interactively, and the psql path/user inside the image.
-- `railway link` with all of `-p -e -s -w` and no TTY; `railway init -n -w` outside a terminal; a second linked project in another directory.
+- `railway link` with all of `-p -e -s -w` and no TTY; `railway init -n -w` outside a terminal.
+- The environment of a tools project created by `railway init` is `production`: `relink.sh` links `tools-project/` with `-e production`.
 - `railway environment config --json` (needs a linked directory) as a source for the deployed branch; `meta.branch` for services never deployed from GitHub; branch of a service with a PR environment.
 - Whether `railway variable list` without `--kv`/`--json` masks values in the table form.
 - Plan required for backups and PITR; effect of `postgres pitr enable` (deploy/restart of the database); what `backup create --name` returns in `--json`.
