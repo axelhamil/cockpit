@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/axelhamil/railway-pilot/compare/v1.3.0...v1.4.0) (2026-10-09)
+
+
+### Features
+
+* ask for access early, set a spending alert, announce updates ([f179978](https://github.com/axelhamil/railway-pilot/commit/f1799788d32e77b25160271a39c5c51795a0105f))
+
 # [1.3.0](https://github.com/axelhamil/railway-pilot/compare/v1.2.0...v1.3.0) (2026-10-09)
 
 
