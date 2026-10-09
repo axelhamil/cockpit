@@ -26,7 +26,7 @@ One screen, in their language, in this order. One line each, a figure when there
 1. **Verdict**: all good, or the one thing that needs attention.
 2. **App**: online or not, response time.
 3. **Errors**: how many since yesterday and the most frequent one in plain words, or none.
-4. **Cost**: this month so far, against last month's total.
+4. **Cost**: this month so far, against last month's total and against the spending alert of `state.md`. No `Spending alert` line at all in `state.md` (not `none`, which means they declined): offer one (`onboarding.md`, step 5).
 5. **Backups**: date of the last one, the schedule.
 6. **Tools**: each tool, online or not.
 7. **Waiting**: changes not yet live, hand-offs without an answer.

@@ -125,8 +125,11 @@ print_dependencies() {
 print_context() {
   printf 'railway-pilot session context\n'
 
+  current_version=unknown
+
   if scripts_dir=$(scripts_directory); then
-    printf 'plugin version: %s\n' "$(known_version "$(plugin_version "$scripts_dir")")"
+    current_version=$(known_version "$(plugin_version "$scripts_dir")")
+    printf 'plugin version: %s\n' "$current_version"
     printf 'scripts directory: %s\n' "$scripts_dir"
   else
     printf 'plugin version: unknown\n'
@@ -167,6 +170,18 @@ print_context() {
 
   if [ "$onboarding" = complete ] && [ -n "${scripts_dir:-}" ]; then
     sh "$scripts_dir/health-check.sh" 2>/dev/null || :
+  fi
+
+  recorded_version=$(known_version "$(state_value plugin_version)")
+
+  if [ "$onboarding" != complete ] || [ "$current_version" = unknown ]; then
+    return 0
+  fi
+
+  if [ "$recorded_version" = unknown ]; then
+    printf 'plugin version: not recorded in the state file yet\n'
+  elif [ "$recorded_version" != "$current_version" ]; then
+    printf 'plugin version changed: from %s to %s since the last session, changelog: %s/CHANGELOG.md\n' "$recorded_version" "$current_version" "$(dirname -- "$scripts_dir")"
   fi
 }
 

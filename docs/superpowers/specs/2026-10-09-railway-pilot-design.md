@@ -235,6 +235,12 @@ Flow:
 - **Standard setups**: `references/standards.md`. A shape per kind of tool (steering dashboards, entity sheets linked by click, automations, monitors), fitted to the app from its schema through five roles: account, member, object, activity, money. Claude offers the next missing piece unprompted, one offer per answer, never again once declined.
 - **Repair and removal**: `references/repair.md`, with `apply-settings.sh --remove`.
 
+### Fewer surprises (added 2026-10-09)
+
+- **Access asked first**: the profile step asks whether the user's accounts are invited on the Railway project and on the repository, and writes the message to send when they are not, so invitations arrive during the install. The GitHub step reads `viewerPermission`.
+- **Spending alert**: the backups step sets a soft usage limit (email alert) from the real figures. Never a hard limit, which stops the app.
+- **What is new**: `plugin_version` in `state.md` holds the version the user was last told about. The session hook prints `plugin version changed` with the changelog path when it differs, and Claude says in one or two sentences what can now be asked.
+
 ## 13. Hand-off to a developer
 
 A recommendation the client accepts or asks for, never a refusal. Claude recommends it when a change touches authentication, payments, permissions, a migration, the schema or existing data, when a bug cannot be verified without running the app, when a step failed twice, or when the effect on production is unclear.

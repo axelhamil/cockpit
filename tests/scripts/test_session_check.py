@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 import tempfile
 
 from support import SCRIPTS_DIR, ScriptTestCase
@@ -168,3 +169,60 @@ class SessionCheckTest(ScriptTestCase):
 
         self.assertEqual(result.returncode, 0)
         self.assertIn('health: PROBLEM, service "web" in environment "production" is CRASHED', result.stdout)
+
+    def copied_plugin(self, version):
+        root = tempfile.mkdtemp(dir=self.workspace)
+        os.makedirs(os.path.join(root, "scripts"))
+        os.makedirs(os.path.join(root, ".claude-plugin"))
+        shutil.copy(os.path.join(SCRIPTS_DIR, "session-check.sh"), os.path.join(root, "scripts"))
+        with open(os.path.join(root, ".claude-plugin", "plugin.json"), "w", encoding="utf-8") as handle:
+            handle.write('{"name": "railway-pilot", "version": "' + version + '"}')
+        return root
+
+    def run_copied(self, root):
+        return subprocess.run(
+            [shutil.which("sh"), os.path.join(root, "scripts", "session-check.sh")],
+            env=self.env,
+            capture_output=True,
+            universal_newlines=True,
+        )
+
+    def test_given_a_newer_plugin_than_the_one_recorded_then_the_context_points_to_the_changelog(self):
+        root = self.copied_plugin("1.4.0")
+        self.write_state("---\nschema_version: 1\nlanguage: fr\nonboarding: complete\nplugin_version: 1.3.0\ndependencies: railway\n---\n")
+
+        result = self.run_copied(root)
+
+        self.assertEqual(result.returncode, 0)
+        self.assertIn(
+            "plugin version changed: from 1.3.0 to 1.4.0 since the last session, changelog: " + os.path.realpath(root) + "/CHANGELOG.md",
+            result.stdout,
+        )
+
+    def test_given_the_recorded_version_is_current_then_no_change_is_announced(self):
+        root = self.copied_plugin("1.4.0")
+        self.write_state("---\nschema_version: 1\nlanguage: fr\nonboarding: complete\nplugin_version: 1.4.0\ndependencies: railway\n---\n")
+
+        result = self.run_copied(root)
+
+        self.assertNotIn("plugin version changed", result.stdout)
+        self.assertNotIn("not recorded", result.stdout)
+
+    def test_given_no_recorded_version_after_onboarding_then_the_context_asks_to_record_it(self):
+        root = self.copied_plugin("1.4.0")
+        self.write_state("---\nschema_version: 1\nlanguage: fr\nonboarding: complete\ndependencies: railway\n---\n")
+
+        result = self.run_copied(root)
+
+        self.assertIn("plugin version: not recorded in the state file yet", result.stdout)
+        self.assertNotIn("plugin version changed", result.stdout)
+
+    def test_given_onboarding_in_progress_then_the_version_is_left_alone(self):
+        root = self.copied_plugin("1.4.0")
+        self.write_state("---\nschema_version: 1\nlanguage: fr\nonboarding: in-progress\nonboarding_step: github\nplugin_version: 1.3.0\ndependencies: railway\n---\n")
+
+        result = self.run_copied(root)
+
+        self.assertNotIn("plugin version changed", result.stdout)
+        self.assertNotIn("not recorded", result.stdout)
+
