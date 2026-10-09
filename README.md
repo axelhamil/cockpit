@@ -17,7 +17,7 @@ On the client's Mac, open Claude Code (the Code tab of the Claude Desktop app) a
 Set up railway-pilot for me. Do each step yourself and tell me in plain words when I need to click something.
 
 1. Run `xcode-select -p`. If it fails, run `xcode-select --install`, tell me to click Install in the window that opens, then run `git --version` every 30 seconds until it works.
-2. Run `claude plugin install railway-pilot --marketplace axelhamil/railway-pilot`.
+2. Run `claude plugin marketplace add axelhamil/railway-pilot`, then `claude plugin install railway-pilot@railway-pilot`.
 3. Tell me to quit and reopen Claude, then to type: start railway-pilot.
 ```
 
