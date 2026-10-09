@@ -1,6 +1,6 @@
 # Dependencies
 
-Install only what the plan in `state.md` lists. Say in one sentence what will be installed, install everything, verify everything, then record each dependency with its version in `state.md`.
+Install only what the `dependencies` line of `cockpit.md` lists. Say in one sentence what will be installed, install everything, verify everything, then record each dependency with its version in `state.md`.
 
 Claude Desktop reads `PATH` from `~/.zshrc` when the app starts. Right after an install the new command is not on `PATH` yet: prefix commands with `PATH="$HOME/.railway/bin:$HOME/.local/bin:$PATH"` until the user restarts the app, and ask for that restart at the end of the install phase.
 

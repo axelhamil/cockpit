@@ -1,12 +1,14 @@
 import os
 import shlex
 import shutil
+import stat
 import subprocess
 import tempfile
 import unittest
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCRIPTS_DIR = os.path.join(REPO_ROOT, "scripts")
+FIXTURES_DIR = os.path.join(REPO_ROOT, "tests", "fixtures")
 SHELL = shutil.which("sh")
 
 
@@ -53,6 +55,45 @@ class ScriptTestCase(unittest.TestCase):
 
     def exists(self, relative_path):
         return os.path.exists(self.path(relative_path))
+
+    def build_state_v1(self, home=None):
+        subprocess.run(
+            [SHELL, os.path.join(FIXTURES_DIR, "state-v1", "fixture.sh")],
+            env={**self.env, "COCKPIT_HOME": home or self.home},
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+
+    def snapshot(self, directory=None):
+        root = directory or self.home
+        entries = {}
+
+        for current, directories, files in os.walk(root):
+            for name in directories + files:
+                full = os.path.join(current, name)
+                mode = stat.S_IMODE(os.lstat(full).st_mode)
+
+                if os.path.isdir(full):
+                    entries[os.path.relpath(full, root)] = ("directory", mode, None)
+                    continue
+
+                with open(full, "rb") as handle:
+                    entries[os.path.relpath(full, root)] = ("file", mode, handle.read())
+
+        return entries
+
+    def write_v2_state(self, *slugs, onboarding="complete"):
+        self.write(
+            "cockpit-home/cockpit.md",
+            "---\nschema_version: 2\nlanguage: en\nplugin_version: 1.0.0\ndependencies: git, railway\n---\n\n"
+            "## User\n- Name: Alex Morgan\n- Email: alex@example.com\n",
+        )
+        for slug in slugs:
+            self.write(
+                "cockpit-home/projects/{}/state.md".format(slug),
+                "---\nprovider: railway\nonboarding: {}\nonboarding_step: check\n---\n\n"
+                "## SaaS project\n- Project: {} (11111111-1111-1111-1111-111111111111)\n".format(onboarding, slug),
+            )
 
     def install_command(self, name, body, directory="bin"):
         target = self.write(os.path.join(directory, name), "#!/bin/sh\n" + body)
