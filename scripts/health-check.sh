@@ -1,14 +1,14 @@
 #!/bin/sh
 set -eu
 
-if [ "${RP_TEST:-}" != 1 ]; then
-  unset RAILWAY_BIN RP_HEALTH_WAIT
+if [ "${COCKPIT_TEST:-}" != 1 ]; then
+  unset RAILWAY_BIN COCKPIT_HEALTH_WAIT
 fi
 
 PATH=$PATH:${HOME:-}/.railway/bin:${HOME:-}/.local/bin
 railway_bin=${RAILWAY_BIN:-railway}
-wait_seconds=${RP_HEALTH_WAIT:-6}
-state_home=${RAILWAY_PILOT_HOME:-${HOME:-}/.railway-pilot}
+wait_seconds=${COCKPIT_HEALTH_WAIT:-6}
+state_home=${COCKPIT_HOME:-${HOME:-}/.cockpit}
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 saas_dir=$state_home/saas-project
 

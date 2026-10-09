@@ -5,7 +5,7 @@ import unittest
 
 from support import SCRIPTS_DIR, ScriptTestCase
 
-ARGUMENTS = ["--marketplace", "railway-pilot", "--repo", "acme/railway-pilot"]
+ARGUMENTS = ["--marketplace", "cockpit", "--repo", "acme/cockpit"]
 
 
 def replaced(option, value):
@@ -37,24 +37,24 @@ class ApplySettingsTest(ScriptTestCase):
         self.assertEqual(self.settings()["permissions"], shipped_permissions())
         self.assertEqual(
             self.settings()["extraKnownMarketplaces"],
-            {"railway-pilot": {"source": {"source": "github", "repo": "acme/railway-pilot"}, "autoUpdate": True}},
+            {"cockpit": {"source": {"source": "github", "repo": "acme/cockpit"}, "autoUpdate": True}},
         )
         self.assertEqual(os.listdir(self.path("claude")), ["settings.json"])
-        self.assertEqual(os.listdir(self.path("pilot-home")), [])
+        self.assertEqual(os.listdir(self.path("cockpit-home")), [])
 
     def test_shipped_permissions_only_allow(self):
         permissions = shipped_permissions()
 
         self.assertEqual(sorted(permissions), ["additionalDirectories", "allow"])
-        self.assertEqual(permissions["additionalDirectories"], ["~/.railway-pilot"])
+        self.assertEqual(permissions["additionalDirectories"], ["~/.cockpit"])
         self.assertEqual(
             permissions["allow"],
             [
                 "Bash(railway *)",
                 "Bash(gh *)",
                 "Bash(git *)",
-                "Read(~/.railway-pilot/**)",
-                "Edit(~/.railway-pilot/**)",
+                "Read(~/.cockpit/**)",
+                "Edit(~/.cockpit/**)",
                 "Bash(sh */scripts/database-access.sh *)",
                 "Bash(sh */scripts/install-gh.sh)",
                 "Bash(sh */scripts/github-login.sh)",
@@ -78,7 +78,7 @@ class ApplySettingsTest(ScriptTestCase):
             },
             "extraKnownMarketplaces": {
                 "other": {"source": {"source": "github", "repo": "someone/other"}},
-                "railway-pilot": {"source": {"source": "github", "repo": "old/location"}, "note": "kept"},
+                "cockpit": {"source": {"source": "github", "repo": "old/location"}, "note": "kept"},
             },
         }
         original_text = json.dumps(existing)
@@ -96,15 +96,15 @@ class ApplySettingsTest(ScriptTestCase):
         self.assertEqual(merged["permissions"]["deny"], ["Bash(curl *)"])
         self.assertEqual(merged["permissions"]["allow"][:2], ["Bash(ls *)", "Bash(git *)"])
         self.assertEqual(merged["permissions"]["allow"].count("Bash(git *)"), 1)
-        self.assertEqual(merged["permissions"]["additionalDirectories"], ["~/notes", "~/.railway-pilot"])
+        self.assertEqual(merged["permissions"]["additionalDirectories"], ["~/notes", "~/.cockpit"])
         for kind, rules in shipped_permissions().items():
             self.assertTrue(set(rules) <= set(merged["permissions"][kind]), kind)
         self.assertEqual(merged["extraKnownMarketplaces"]["other"], existing["extraKnownMarketplaces"]["other"])
         self.assertEqual(
-            merged["extraKnownMarketplaces"]["railway-pilot"],
-            {"source": {"source": "github", "repo": "acme/railway-pilot"}, "note": "kept", "autoUpdate": True},
+            merged["extraKnownMarketplaces"]["cockpit"],
+            {"source": {"source": "github", "repo": "acme/cockpit"}, "note": "kept", "autoUpdate": True},
         )
-        self.assertEqual(self.read("claude/settings.json.before-railway-pilot"), original_text)
+        self.assertEqual(self.read("claude/settings.json.before-cockpit"), original_text)
 
     def test_given_a_second_run_then_nothing_changes_and_the_backup_is_not_replaced(self):
         self.write("claude/settings.json", '{"permissions": {"allow": ["Bash(ls *)"]}}')
@@ -115,8 +115,8 @@ class ApplySettingsTest(ScriptTestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.read("claude/settings.json"), first_settings)
-        self.assertEqual(self.read("claude/settings.json.before-railway-pilot"), '{"permissions": {"allow": ["Bash(ls *)"]}}')
-        self.assertEqual(sorted(os.listdir(self.path("claude"))), ["settings.json", "settings.json.before-railway-pilot"])
+        self.assertEqual(self.read("claude/settings.json.before-cockpit"), '{"permissions": {"allow": ["Bash(ls *)"]}}')
+        self.assertEqual(sorted(os.listdir(self.path("claude"))), ["settings.json", "settings.json.before-cockpit"])
 
     def test_given_a_later_run_with_another_repository_then_the_first_backup_is_kept(self):
         self.write("claude/settings.json", '{"model": "opus"}')
@@ -125,8 +125,8 @@ class ApplySettingsTest(ScriptTestCase):
         result = self.apply(replaced("--repo", "acme/moved"))
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.settings()["extraKnownMarketplaces"]["railway-pilot"]["source"]["repo"], "acme/moved")
-        self.assertEqual(self.read("claude/settings.json.before-railway-pilot"), '{"model": "opus"}')
+        self.assertEqual(self.settings()["extraKnownMarketplaces"]["cockpit"]["source"]["repo"], "acme/moved")
+        self.assertEqual(self.read("claude/settings.json.before-cockpit"), '{"model": "opus"}')
 
     def test_given_a_second_run_after_creating_the_file_then_no_backup_of_our_own_file_appears(self):
         self.apply()
@@ -185,7 +185,7 @@ class ApplySettingsTest(ScriptTestCase):
         self.assertIn("permissions", json.loads(self.read("dotfiles/settings.json")))
 
     def test_given_a_settings_path_override_without_the_test_switch_then_the_real_location_is_used(self):
-        del self.env["RP_TEST"]
+        del self.env["COCKPIT_TEST"]
 
         result = self.apply()
 
@@ -225,38 +225,38 @@ class ApplySettingsTest(ScriptTestCase):
         self.write("claude/settings.json", json.dumps(before))
         self.apply()
 
-        result = self.apply(["--remove", "--marketplace", "railway-pilot"])
+        result = self.apply(["--remove", "--marketplace", "cockpit"])
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.settings(), before)
-        self.assertFalse(self.exists("claude/settings.json.before-railway-pilot"))
+        self.assertFalse(self.exists("claude/settings.json.before-cockpit"))
 
     def test_given_a_marketplace_of_the_same_name_before_the_plugin_then_remove_puts_it_back(self):
-        before = {"extraKnownMarketplaces": {"railway-pilot": {"source": {"source": "directory", "path": "/src"}}}}
+        before = {"extraKnownMarketplaces": {"cockpit": {"source": {"source": "directory", "path": "/src"}}}}
         self.write("claude/settings.json", json.dumps(before))
         self.apply()
 
-        self.apply(["--remove", "--marketplace", "railway-pilot"])
+        self.apply(["--remove", "--marketplace", "cockpit"])
 
         self.assertEqual(self.settings(), before)
 
     def test_given_settings_created_by_the_plugin_then_remove_leaves_no_rule_and_no_backup(self):
         self.apply()
 
-        result = self.apply(["--remove", "--marketplace", "railway-pilot"])
+        result = self.apply(["--remove", "--marketplace", "cockpit"])
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.settings(), {})
-        self.assertFalse(self.exists("claude/settings.json.before-railway-pilot"))
+        self.assertFalse(self.exists("claude/settings.json.before-cockpit"))
 
     def test_given_no_settings_file_then_remove_creates_nothing(self):
-        result = self.apply(["--remove", "--marketplace", "railway-pilot"])
+        result = self.apply(["--remove", "--marketplace", "cockpit"])
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(self.exists("claude/settings.json"))
 
     def test_given_a_repository_with_remove_then_the_usage_is_shown(self):
-        result = self.apply(["--remove", "--marketplace", "railway-pilot", "--repo", "acme/railway-pilot"])
+        result = self.apply(["--remove", "--marketplace", "cockpit", "--repo", "acme/cockpit"])
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("Usage", result.stderr)

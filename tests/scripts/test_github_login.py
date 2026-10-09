@@ -21,8 +21,8 @@ class GithubLoginTest(ScriptTestCase):
         super().setUp()
         self.env["GH_BIN"] = self.install_command("gh", FAKE_GH)
         self.env["FAKE_GH_LOG"] = self.path("gh.log")
-        self.env["RP_OPEN"] = "echo >> " + shlex.quote(self.path("opened"))
-        self.env["RP_OPEN_DELAY"] = "0"
+        self.env["COCKPIT_OPEN"] = "echo >> " + shlex.quote(self.path("opened"))
+        self.env["COCKPIT_OPEN_DELAY"] = "0"
 
     def gh_calls(self):
         return self.read("gh.log").splitlines() if self.exists("gh.log") else []
@@ -52,7 +52,7 @@ class GithubLoginTest(ScriptTestCase):
 
     def test_given_the_sign_in_fails_at_once_then_the_page_is_not_opened(self):
         self.env["FAKE_GH_LOGIN_FAILS"] = "1"
-        self.env["RP_OPEN_DELAY"] = "1"
+        self.env["COCKPIT_OPEN_DELAY"] = "1"
 
         self.run_script("github-login.sh")
         time.sleep(1.5)
@@ -60,7 +60,7 @@ class GithubLoginTest(ScriptTestCase):
         self.assertFalse(self.exists("opened"))
 
     def test_given_overrides_without_the_test_switch_then_the_real_gh_is_used(self):
-        del self.env["RP_TEST"]
+        del self.env["COCKPIT_TEST"]
         self.install_command("open", "exit 0\n", "path-bin")
         self.install_command("gh", 'printf \'%s\\n\' "$*" >>"$REAL_GH_LOG"\nif [ "$2" = login ]; then sleep 4; fi\n', "path-bin")
         self.env["PATH"] = self.path("path-bin") + os.pathsep + self.env["PATH"]

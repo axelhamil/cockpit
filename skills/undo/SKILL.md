@@ -5,6 +5,6 @@ description: Use when the user wants to cancel, revert or go back on something t
 
 # Undo
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/railway-pilot/SKILL.md`, then `${CLAUDE_PLUGIN_ROOT}/skills/railway-pilot/references/undo.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/cockpit/SKILL.md`, then `${CLAUDE_PLUGIN_ROOT}/skills/cockpit/references/undo.md`.
 
 Find what was done, reverse it, say what is back to how it was.

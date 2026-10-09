@@ -39,8 +39,8 @@ class InstallGhTest(ScriptTestCase):
         self.env["PATH"] = self.path("bin") + os.pathsep + self.env["PATH"]
         self.env["HOME"] = self.path("ho me")
         os.makedirs(self.env["HOME"])
-        self.env["RP_BIN_DIR"] = self.path("ho me", "tools bin")
-        self.env["RP_SHELL_PROFILE"] = self.path("ho me", ".zshrc")
+        self.env["COCKPIT_BIN_DIR"] = self.path("ho me", "tools bin")
+        self.env["COCKPIT_SHELL_PROFILE"] = self.path("ho me", ".zshrc")
         self.env["FAKE_CURL_LOG"] = self.path("curl.log")
         self.env["FAKE_RELEASE"] = self.write(
             "release.json",
@@ -136,7 +136,7 @@ class InstallGhTest(ScriptTestCase):
                 self.assertEqual(self.home_content(), [])
 
     def test_given_folder_overrides_without_the_test_switch_then_the_real_locations_are_used(self):
-        del self.env["RP_TEST"]
+        del self.env["COCKPIT_TEST"]
 
         result = self.install()
 

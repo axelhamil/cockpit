@@ -1,6 +1,6 @@
 # Memory
 
-What Claude learns at this client lives in `~/.railway-pilot/`. The plugin directory is never written to.
+What Claude learns at this client lives in `~/.cockpit/`. The plugin directory is never written to.
 
 ## What goes where
 
@@ -22,7 +22,7 @@ Facts about what was just done (a tool deployed, a tool connected to the data, a
 2. Add the dated line to `journal.md`.
 3. Tell the user in one line what you noted. They can say no and you remove it.
 
-`/railway-pilot:review-session` sweeps a whole conversation for what was missed.
+`/cockpit:review-session` sweeps a whole conversation for what was missed.
 
 ## Sources
 

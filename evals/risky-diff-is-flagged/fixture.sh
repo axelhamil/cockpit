@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
-mkdir -p "$HOME/.railway-pilot"
-cat > "$HOME/.railway-pilot/state.md" <<STATE
+mkdir -p "$HOME/.cockpit"
+cat > "$HOME/.cockpit/state.md" <<STATE
 ---
 schema_version: 1
 language: en
@@ -24,7 +24,7 @@ dependencies: git, railway, gh
 
 ## Code
 - Merge policy: ask-me
-- Clone: ~/.railway-pilot/repo
+- Clone: ~/.cockpit/repo
 
 ## Tools project
 - Project: acme tools (22222222-2222-2222-2222-222222222222)

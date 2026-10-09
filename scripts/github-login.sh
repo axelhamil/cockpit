@@ -1,13 +1,13 @@
 #!/bin/sh
 set -eu
 
-if [ "${RP_TEST:-}" != 1 ]; then
-  unset RAILWAY_BIN RP_CLIPBOARD RP_OPEN RP_OPEN_DELAY GH_BIN RP_BIN_DIR RP_SHELL_PROFILE CLAUDE_SETTINGS
+if [ "${COCKPIT_TEST:-}" != 1 ]; then
+  unset RAILWAY_BIN COCKPIT_CLIPBOARD COCKPIT_OPEN COCKPIT_OPEN_DELAY GH_BIN COCKPIT_BIN_DIR COCKPIT_SHELL_PROFILE CLAUDE_SETTINGS
 fi
 
 gh_bin=${GH_BIN:-gh}
-open_command=${RP_OPEN:-open}
-open_delay=${RP_OPEN_DELAY:-3}
+open_command=${COCKPIT_OPEN:-open}
+open_delay=${COCKPIT_OPEN_DELAY:-3}
 
 fail() {
   printf '%s\n' "$1" >&2

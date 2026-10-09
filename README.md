@@ -1,4 +1,4 @@
-# railway-pilot
+# cockpit
 
 A Claude Code plugin for non-technical teams whose SaaS runs on Railway. They talk to Claude, and Claude:
 
@@ -16,14 +16,24 @@ It is the team's project and the team decides. Claude does what is asked and rep
 On the client's Mac, open Claude Code (the Code tab of the Claude Desktop app) and paste this message:
 
 ```
-Set up railway-pilot for me. Do each step yourself and tell me in plain words when I need to click something.
+Set up cockpit for me. Do each step yourself and tell me in plain words when I need to click something.
 
 1. Run `xcode-select -p`. If it fails, run `xcode-select --install`, tell me to click Install in the window that opens, then run `git --version` every 30 seconds until it works.
-2. Run `claude plugin marketplace add axelhamil/railway-pilot`, then `claude plugin install railway-pilot@railway-pilot`.
-3. Tell me to quit and reopen Claude, then to type: start railway-pilot.
+2. Run `claude plugin marketplace add axelhamil/cockpit`, then `claude plugin install cockpit@cockpit`.
+3. Tell me to quit and reopen Claude, then to type: start cockpit.
 ```
 
 After the restart, the plugin starts its guided setup: it asks what the team wants to do, shows a plan, installs what the plan needs and configures everything.
+
+### Coming from railway-pilot
+
+The plugin was called railway-pilot until version 1.6. On a Mac that has it, paste this before the install message, so the saved setup and memory are kept:
+
+```
+Run these for me, in order: `sh "$(ls -d ~/.claude/plugins/cache/railway-pilot/railway-pilot/*/scripts | tail -1)/apply-settings.sh" --remove --marketplace railway-pilot`, `claude plugin uninstall railway-pilot@railway-pilot`, `claude plugin marketplace remove railway-pilot`, `mv ~/.railway-pilot ~/.cockpit`.
+```
+
+After the install, say "repair the setup": the folders linked to Railway moved with the rename and are linked again.
 
 ## What it installs on the Mac
 
@@ -35,16 +45,16 @@ Only what the plan needs, without Homebrew:
 
 Node.js is installed only if a chosen tool cannot be driven any other way, and that one asks for the Mac password.
 
-What Claude learns about the business stays in `~/.railway-pilot/` on the Mac. Plugin updates never touch it.
+What Claude learns about the business stays in `~/.cockpit/` on the Mac. Plugin updates never touch it.
 
 ## Commands
 
-- `/railway-pilot:onboard`: add a usage or a tool, or resume the setup
-- `/railway-pilot:status`: how the app is doing, in one screen
-- `/railway-pilot:undo`: go back on the last change
-- `/railway-pilot:repair`: fix the setup on this Mac, or remove railway-pilot
-- `/railway-pilot:review-session`: save what was learned in the conversation
-- `/railway-pilot:report`: send improvement proposals to the plugin maintainer
+- `/cockpit:onboard`: add a usage or a tool, or resume the setup
+- `/cockpit:status`: how the app is doing, in one screen
+- `/cockpit:undo`: go back on the last change
+- `/cockpit:repair`: fix the setup on this Mac, or remove cockpit
+- `/cockpit:review-session`: save what was learned in the conversation
+- `/cockpit:report`: send improvement proposals to the plugin maintainer
 
 ## Development
 
@@ -54,4 +64,4 @@ claude plugin validate .
 claude plugin eval . --scaffold --runs 1
 ```
 
-Design: `docs/superpowers/specs/2026-10-09-railway-pilot-design.md`.
+Design: `docs/superpowers/specs/2026-10-09-cockpit-design.md`.

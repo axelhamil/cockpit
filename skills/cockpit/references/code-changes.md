@@ -2,7 +2,7 @@
 
 Changes to the app, made through a pull request. Small presentation changes (wording, labels, styles, layout, static content) go straight through. Bigger ones are possible too: mention the risk once and follow the user's choice.
 
-The working copy is `~/.railway-pilot/repo/`. `state.md` holds the deployed branch, the test branch if any, and the merge policy.
+The working copy is `~/.cockpit/repo/`. `state.md` holds the deployed branch, the test branch if any, and the merge policy.
 
 Nothing is built or run on this Mac: there is no Node and no local server. What proves a change is the repository checks and the test or preview deployment, looked at in the Browser pane.
 
@@ -11,7 +11,7 @@ Before changing a screen, open it in the Browser pane on the live app and take a
 ## 1. Prepare
 
 ```
-cd ~/.railway-pilot/repo && git fetch origin && git checkout <deployed branch> && git pull
+cd ~/.cockpit/repo && git fetch origin && git checkout <deployed branch> && git pull
 ```
 
 Read `codebase.md`, then find the code. If the change turns out to be more than presentation, say so in one sentence (what it touches, what could break) and carry on unless they stop you.
@@ -19,14 +19,14 @@ Read `codebase.md`, then find the code. If the change turns out to be more than 
 ## 2. Change
 
 ```
-git checkout -b pilot/<short-slug>
+git checkout -b cockpit/<short-slug>
 ```
 
 Edit. Follow the conventions of the files around the change. Change nothing the request does not need. Workflows, environment files and Railway configuration files change how the app is built and deployed: touch them only when the request is about them, and say so.
 
 ```
 git add <each file> && git commit -m "<type>: <what the user will see>"
-git push -u origin pilot/<short-slug>
+git push -u origin cockpit/<short-slug>
 ```
 
 Use the commit style already in `git log`.

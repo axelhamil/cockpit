@@ -12,7 +12,7 @@ class SessionCheckTest(ScriptTestCase):
         self.env["PATH"] = self.isolated_path("sed", "dirname", "uname")
 
     def write_state(self, content):
-        self.write("pilot-home/state.md", content)
+        self.write("cockpit-home/state.md", content)
 
     def check(self, script="session-check.sh"):
         return self.run_script(script)
@@ -81,7 +81,7 @@ class SessionCheckTest(ScriptTestCase):
         self.assertIn("note:", result.stdout)
 
     def test_given_an_unreadable_state_then_a_note_is_printed_and_the_session_continues(self):
-        os.makedirs(self.path("pilot-home/state.md"))
+        os.makedirs(self.path("cockpit-home/state.md"))
 
         result = self.check()
 
@@ -135,7 +135,7 @@ class SessionCheckTest(ScriptTestCase):
     def test_the_last_line_asks_to_load_the_skill(self):
         result = self.check()
 
-        self.assertEqual(result.stdout.splitlines()[-1], "Load the railway-pilot skill before answering the first request of this session.")
+        self.assertEqual(result.stdout.splitlines()[-1], "Load the cockpit skill before answering the first request of this session.")
 
     def test_plugin_version_comes_from_the_manifest_and_is_unknown_without_it(self):
         plugin_copy = tempfile.mkdtemp(dir=self.workspace)
@@ -146,7 +146,7 @@ class SessionCheckTest(ScriptTestCase):
 
         os.makedirs(os.path.join(plugin_copy, ".claude-plugin"))
         with open(os.path.join(plugin_copy, ".claude-plugin", "plugin.json"), "w", encoding="utf-8") as handle:
-            handle.write('{\n  "name": "railway-pilot",\n  "version": "1.4.2"\n}\n')
+            handle.write('{\n  "name": "cockpit",\n  "version": "1.4.2"\n}\n')
 
         with_manifest = self.check(copied_script)
 
@@ -156,7 +156,7 @@ class SessionCheckTest(ScriptTestCase):
 
     def test_given_onboarding_complete_and_a_crashed_service_then_the_context_carries_the_problem(self):
         self.env["PATH"] = os.environ["PATH"]
-        self.write("pilot-home/saas-project/.keep", "")
+        self.write("cockpit-home/saas-project/.keep", "")
         self.write_state("---\nschema_version: 1\nlanguage: fr\nonboarding: complete\ndependencies: railway\n---\n")
         self.install_fake_railway(
             "echo '"
@@ -176,7 +176,7 @@ class SessionCheckTest(ScriptTestCase):
         os.makedirs(os.path.join(root, ".claude-plugin"))
         shutil.copy(os.path.join(SCRIPTS_DIR, "session-check.sh"), os.path.join(root, "scripts"))
         with open(os.path.join(root, ".claude-plugin", "plugin.json"), "w", encoding="utf-8") as handle:
-            handle.write('{"name": "railway-pilot", "version": "' + version + '"}')
+            handle.write('{"name": "cockpit", "version": "' + version + '"}')
         return root
 
     def run_copied(self, root):

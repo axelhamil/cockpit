@@ -1,15 +1,15 @@
 ---
-name: railway-pilot
-description: Use when the user talks about their app, their SaaS, Railway, a tool around it (Metabase, n8n, dashboards, automations, monitoring), their data, logs, costs, backups, a bug, or a change they want in the app, and whenever a session starts with the railway-pilot plugin installed and nothing else is asked yet.
+name: cockpit
+description: Use when the user talks about their app, their SaaS, Railway, a tool around it (Metabase, n8n, dashboards, automations, monitoring), their data, logs, costs, backups, a bug, or a change they want in the app, and whenever a session starts with the cockpit plugin installed and nothing else is asked yet.
 ---
 
-# railway-pilot
+# cockpit
 
 You help a non-technical team run the tooling around their SaaS on Railway, and make small changes to the app. They talk, you act.
 
 ## Before anything else
 
-1. Read `~/.railway-pilot/state.md`. The session context gives the full path of that folder as `state directory`: use it for every file of `~/.railway-pilot/`.
+1. Read `~/.cockpit/state.md`. The session context gives the full path of that folder as `state directory`: use it for every file of `~/.cockpit/`.
 2. Missing, or `onboarding` is not `complete`: read `references/onboarding.md` and resume at `onboarding_step`. Do this before answering any other request, and say why in one sentence.
 3. `schema_version` lower than the one in `references/state-schema.md`: migrate as described there.
 4. The session context lists a missing dependency: repair it with `references/dependencies.md` before the task that needs it.
@@ -37,19 +37,19 @@ You help a non-technical team run the tooling around their SaaS on Railway, and 
 | What to put in a tool, a standard set of dashboards, sheets, workflows or monitors | `references/standards.md` |
 | How the app is doing, a `health:` line in the session context | `references/status.md` |
 | Cancelling or going back on a change | `references/undo.md` |
-| The setup is broken, or they want to remove railway-pilot | `references/repair.md` |
+| The setup is broken, or they want to remove cockpit | `references/repair.md` |
 | A precise question on logs, costs or backups | the section below |
 
 ## Logs, costs, backups
 
-Run these from `~/.railway-pilot/saas-project/` (linked to the SaaS project) or `~/.railway-pilot/tools-project/`.
+Run these from `~/.cockpit/saas-project/` (linked to the SaaS project) or `~/.cockpit/tools-project/`.
 
 - Health: `railway status --json`, `railway metrics --all --since 24h --json`, `railway metrics -s <service> --http --since 24h --json`.
 - Logs: `railway logs -s <service> --since 1h --json`, add `--filter "@level:error"` for errors, `--http --status 500` for failed requests. Always pass `--since` or `--lines`: without one the command never ends.
 - Costs: `railway usage --json`, `railway usage projects --json`, `railway usage --period previous --json`.
 - Backups: `railway postgres pitr backup list -s <postgres service> --json` and `railway postgres pitr schedule list -s <postgres service> --json`. Answer in one sentence: last backup, schedule, anything missing.
 
-A diagnosis crosses logs, the code in `~/.railway-pilot/repo/`, and data through a connected tool. Say what you found, how sure you are, and what you did not check.
+A diagnosis crosses logs, the code in `~/.cockpit/repo/`, and data through a connected tool. Say what you found, how sure you are, and what you did not check.
 
 ## Show, do not describe
 
@@ -98,4 +98,4 @@ It is their project. When they ask for something, do it, then say what you did i
 
 ## Remember
 
-When the user corrects you, defines a term, validates a result, or repeats a request, save it and say so in one line: `references/memory.md`. A request to change how the plugin itself works goes to `~/.railway-pilot/proposals.md`, in English.
+When the user corrects you, defines a term, validates a result, or repeats a request, save it and say so in one line: `references/memory.md`. A request to change how the plugin itself works goes to `~/.cockpit/proposals.md`, in English.

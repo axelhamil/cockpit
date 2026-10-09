@@ -171,7 +171,7 @@ FAIL if <what a wrong or missing response looks like>.
 
 ```json
 {
-  "description": "railway-pilot guard and session check",
+  "description": "cockpit guard and session check",
   "hooks": {
     "PreToolUse": [
       {
@@ -208,8 +208,8 @@ FAIL if <what a wrong or missing response looks like>.
 ```json
 {
   "extraKnownMarketplaces": {
-    "railway-pilot": {
-      "source": { "source": "github", "repo": "OWNER/railway-pilot" },
+    "cockpit": {
+      "source": { "source": "github", "repo": "OWNER/cockpit" },
       "autoUpdate": true
     }
   }
@@ -217,7 +217,7 @@ FAIL if <what a wrong or missing response looks like>.
 ```
 
 - `autoUpdate` precedence: the entry in a settings file first, then `known_marketplaces.json`, then the default. `claude plugin marketplace add` already writes the entry to user settings. A background pass runs up to 10 minutes after the first message of an interactive session and prints `Run /reload-plugins to apply`.
-- Plugin enable key: `"enabledPlugins": {"railway-pilot@railway-pilot": true}` (`<entry name>@<marketplace name>`).
+- Plugin enable key: `"enabledPlugins": {"cockpit@cockpit": true}` (`<entry name>@<marketplace name>`).
 
 ## GitHub CLI 2.101.0
 

@@ -2,7 +2,7 @@
 
 Current `schema_version`: 1.
 
-Everything lives in `~/.railway-pilot/`. Only Claude writes there. No personal data of end users, no secret.
+Everything lives in `~/.cockpit/`. Only Claude writes there. No personal data of end users, no secret.
 
 ## state.md
 
@@ -52,7 +52,7 @@ The body below the header uses these sections, in this order. Leave a section em
 
 ## Code
 - Merge policy: ask-me | developer-reviews
-- Clone: ~/.railway-pilot/repo
+- Clone: ~/.cockpit/repo
 
 ## Tools project
 - Project: <name> (<id>)

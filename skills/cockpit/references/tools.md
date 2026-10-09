@@ -2,9 +2,9 @@
 
 Add a tool from the Railway template marketplace, connect it to the SaaS data, and build its content.
 
-Tools live in their own Railway project, separate from the app, so the app's project stays as the developer left it. Do not ask: this is the default. Run the Railway commands of this file from `~/.railway-pilot/tools-project/`, which is linked to that project. Check with `railway status` when in doubt.
+Tools live in their own Railway project, separate from the app, so the app's project stays as the developer left it. Do not ask: this is the default. Run the Railway commands of this file from `~/.cockpit/tools-project/`, which is linked to that project. Check with `railway status` when in doubt.
 
-**When the user asks for a tool inside the app's project**: do it. Every command of this file then runs from `~/.railway-pilot/saas-project/` for that tool, and step 5 uses the private network. Say once what it changes: the tool sits next to the app in the same project, it reaches the database without going through the internet, and a test or preview environment copied from production will copy the tool too. That folder is linked to the app's own service: `railway deploy -t <code>` takes no `-s` and adds the template's services to the production environment, and every other command takes `-s <tool service>`, so nothing lands on the app by default. Skip the creation of the tools project in step 3, and list the services with `railway status --json` before and after the deployment: the tool's services are the new ones, record those exact names. A tool already running in the tools project cannot move: offer to deploy it again inside the app's project (what was built in it is lost). Record `project app` on the tool's line in `state.md`.
+**When the user asks for a tool inside the app's project**: do it. Every command of this file then runs from `~/.cockpit/saas-project/` for that tool, and step 5 uses the private network. Say once what it changes: the tool sits next to the app in the same project, it reaches the database without going through the internet, and a test or preview environment copied from production will copy the tool too. That folder is linked to the app's own service: `railway deploy -t <code>` takes no `-s` and adds the template's services to the production environment, and every other command takes `-s <tool service>`, so nothing lands on the app by default. Skip the creation of the tools project in step 3, and list the services with `railway status --json` before and after the deployment: the tool's services are the new ones, record those exact names. A tool already running in the tools project cannot move: offer to deploy it again inside the app's project (what was built in it is lost). Record `project app` on the tool's line in `state.md`.
 
 ## 1. Find a template
 
@@ -31,13 +31,13 @@ AskUserQuestion with 1 to 3 options, best ranked first and marked recommended. F
 First tool only, create the tools project. `railway whoami --json` lists the workspaces: with several, ask which one pays for the tools.
 
 ```
-mkdir -p ~/.railway-pilot/tools-project && cd ~/.railway-pilot/tools-project && railway init -n "<company> tools" -w "<workspace name>"
+mkdir -p ~/.cockpit/tools-project && cd ~/.cockpit/tools-project && railway init -n "<company> tools" -w "<workspace name>"
 ```
 
 Record the project id in `state.md`. Then:
 
 ```
-cd ~/.railway-pilot/tools-project && railway deploy -t <code>
+cd ~/.cockpit/tools-project && railway deploy -t <code>
 ```
 
 Add `-v "KEY=VALUE"` or `-v "Service.KEY=VALUE"` only for variables the template requires. Follow the deployment with `railway status --json` until every service shows `SUCCESS`, and read `railway logs -s <service> --lines 50` on failure. Two failures: tell the user and offer another template or a hand-off.
@@ -47,7 +47,7 @@ The tool keeps its own data in its own database, from the template. Never point 
 ## 4. Give it an address
 
 ```
-cd ~/.railway-pilot/tools-project && railway domain -s <service>
+cd ~/.cockpit/tools-project && railway domain -s <service>
 ```
 
 Give the user the URL and guide the creation of the admin account screen by screen. They choose and keep the password: never ask for it.
@@ -75,7 +75,7 @@ Open the tool's database screen in the Browser pane and fill host, port, databas
 Order of preference:
 
 1. **The tool's own MCP server**, over OAuth: `claude mcp add --transport http --scope user <name> <url>`. A new MCP server needs a new session: update `state.md` first and ask the user to quit and reopen Claude. Back in the session, check whether the server's tools are available. If it asks for sign-in, tell the user to type `/mcp`, pick the tool and approve in the browser. If the server cannot be connected after two tries, use the REST API.
-2. **The tool's REST API**, with a key the user creates in the tool and copies. Store it without showing it: `mkdir -p ~/.railway-pilot/secrets && { printf '<header name>: '; pbpaste; } > ~/.railway-pilot/secrets/<tool>.key && chmod 600 ~/.railway-pilot/secrets/<tool>.key`, with the header name the tool's documentation gives (`X-API-KEY`, `Authorization: Bearer`). Pass the file to `curl` as a header (`-H @<file>`), never by reading it into the conversation.
+2. **The tool's REST API**, with a key the user creates in the tool and copies. Store it without showing it: `mkdir -p ~/.cockpit/secrets && { printf '<header name>: '; pbpaste; } > ~/.cockpit/secrets/<tool>.key && chmod 600 ~/.cockpit/secrets/<tool>.key`, with the header name the tool's documentation gives (`X-API-KEY`, `Authorization: Bearer`). Pass the file to `curl` as a header (`-H @<file>`), never by reading it into the conversation.
 3. **A local MCP server**, last resort, which requires Node.js: `dependencies.md`.
 
 ### Known tools
@@ -107,4 +107,4 @@ A tool left empty is not used. As soon as it answers and is connected, propose i
 
 ## Removing a tool
 
-Say in one sentence what will be deleted and that it cannot be undone, ask once, and on yes run `railway service delete -s <service> -y` for each service of the tool, from `~/.railway-pilot/tools-project/` or, for a tool recorded as `project app`, from `~/.railway-pilot/saas-project/`. Never delete a service that is not on the tool's line in `state.md`, and in the app's project stop if a name is the app service or the `Postgres service` of `state.md`. Update `state.md` and `journal.md`.
+Say in one sentence what will be deleted and that it cannot be undone, ask once, and on yes run `railway service delete -s <service> -y` for each service of the tool, from `~/.cockpit/tools-project/` or, for a tool recorded as `project app`, from `~/.cockpit/saas-project/`. Never delete a service that is not on the tool's line in `state.md`, and in the app's project stop if a name is the app service or the `Postgres service` of `state.md`. Update `state.md` and `journal.md`.

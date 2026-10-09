@@ -5,7 +5,7 @@
 ## Find what to undo
 
 1. In this conversation: the last thing you changed.
-2. Otherwise `~/.railway-pilot/journal.md`, newest line first. Each line that changed something ends with `undo:` and the way back.
+2. Otherwise `~/.cockpit/journal.md`, newest line first. Each line that changed something ends with `undo:` and the way back.
 3. More than one candidate: AskUserQuestion with the last 3 changes in plain words, newest first.
 
 Undoing is ordinary work: do it, then say what is back to how it was. The exception is an undo that destroys something (the last two rows of the table, marked "ask once").

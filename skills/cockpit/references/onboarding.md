@@ -4,7 +4,7 @@ Guided first run. Also used to add a usage or a tool later.
 
 ## How to run it
 
-- Resume at `onboarding_step` in `state.md`, which names the next step to run: `profile`, `plan`, `dependencies`, `railway`, `backups`, `settings`, `github`, `tools`, `discovery`, `check`. Create `~/.railway-pilot/state.md` from `state-schema.md` as soon as the language is known.
+- Resume at `onboarding_step` in `state.md`, which names the next step to run: `profile`, `plan`, `dependencies`, `railway`, `backups`, `settings`, `github`, `tools`, `discovery`, `check`. Create `~/.cockpit/state.md` from `state-schema.md` as soon as the language is known.
 - After every step that succeeds, before starting the next one: write what the step learned in its section of `state.md`, mark the step done under `Plan`, and move `onboarding_step` forward. A session can end at any moment.
 - One step at a time: say in one sentence what you are doing, do it, check it, record it. Speak up before a step only when the user has to click something.
 - Ask with AskUserQuestion. Group related questions in one call. Free text only when no choice fits.
@@ -52,14 +52,14 @@ Follow `dependencies.md`. Install everything in the plan, verify each, record ve
    Confirm each finding with the user in plain words.
 4. Link a directory to the SaaS project for reading:
    ```
-   mkdir -p ~/.railway-pilot/saas-project && cd ~/.railway-pilot/saas-project && railway link -p <project id> -e <production environment> -s <app service>
+   mkdir -p ~/.cockpit/saas-project && cd ~/.cockpit/saas-project && railway link -p <project id> -e <production environment> -s <app service>
    ```
 5. Record project, environments, services, repository, deployed branch and test branch in `state.md`.
 6. They answered "no" or "not sure" about GitHub at step 1: ask their GitHub username if the profile has none, then give the ready message with the repository name ("Could you give <username> write access to <owner>/<repo>?"). Otherwise say nothing.
 
 ## Step 5: backups and spending alert
 
-From `~/.railway-pilot/saas-project/`:
+From `~/.cockpit/saas-project/`:
 
 ```
 railway postgres pitr status -s <postgres service> --json
@@ -68,7 +68,7 @@ railway postgres pitr schedule list -s <postgres service> --json
 ```
 
 - No schedule: turn it on with `railway postgres pitr schedule set --daily --weekly -s <postgres service>` and tell the user their database is now backed up daily and weekly, billed as storage.
-- Then create one now, which changes nothing in the database: `railway postgres pitr backup create --name before-railway-pilot -s <postgres service>`.
+- Then create one now, which changes nothing in the database: `railway postgres pitr backup create --name before-cockpit -s <postgres service>`.
 - A command fails because the plan or the image does not support backups: record it and tell the user plainly that their database has no backup and what that means. Continue the onboarding.
 
 Then the spending alert, so a tool that costs more than expected is never a surprise:
@@ -90,10 +90,10 @@ Record `Spending alert` in `state.md`, `none` when they declined.
 ## Step 6: settings
 
 ```
-sh $SCRIPTS/apply-settings.sh --marketplace railway-pilot --repo <owner>/railway-pilot
+sh $SCRIPTS/apply-settings.sh --marketplace cockpit --repo <owner>/cockpit
 ```
 
-`<owner>/railway-pilot` is the end of the `repository` URL in `.claude-plugin/plugin.json` of the plugin. This pre-approves the Railway, GitHub and git commands so the user is not asked to allow each one, and turns on automatic updates of the plugin. The permission pop-ups stop after this step.
+`<owner>/cockpit` is the end of the `repository` URL in `.claude-plugin/plugin.json` of the plugin. This pre-approves the Railway, GitHub and git commands so the user is not asked to allow each one, and turns on automatic updates of the plugin. The permission pop-ups stop after this step.
 
 ## Step 7: GitHub
 
@@ -103,9 +103,9 @@ Only if the GitHub CLI is in the plan.
 2. Tell the user first, because the command waits for them: a GitHub page opens in a few seconds, the code is already copied, they sign in if asked, paste the code, approve, and tell you when it is done. Then run `sh $SCRIPTS/github-login.sh` in the background (`run_in_background`), since a foreground command is cut after 2 minutes. It ends when they have approved. The page did not open: `open https://github.com/login/device`. The code expired: run it again.
 3. The app's repository belongs to an organisation the sign-in cannot see: the user asks an owner to approve "GitHub CLI" in the organisation settings, or the owner signs in instead. Record it in `state.md` and move on.
 4. Check: `gh repo view <owner>/<repo> --json name,defaultBranchRef,viewerPermission`. Not found: their account is not invited on that repository. `viewerPermission` is `READ` or `TRIAGE` while changes to the app are in the profile: they can look but not change. In both cases give the message of step 4, record it, clone anyway when the repository is readable, and skip items 7 and 8 and the test issue of step 10 until access is granted.
-5. `gh repo clone <owner>/<repo> ~/.railway-pilot/repo`.
+5. `gh repo clone <owner>/<repo> ~/.cockpit/repo`.
 6. Set the commit identity in the clone with the user's name and email from the profile: `git config user.name "<name>"` and `git config user.email "<email>"`.
-7. `gh label create via-claude --description "Opened with railway-pilot" --repo <owner>/<repo>` (ignore "already exists").
+7. `gh label create via-claude --description "Opened with cockpit" --repo <owner>/<repo>` (ignore "already exists").
 8. Ask the merge policy, if changes to the app are in the profile:
    - `ask-me` (recommended): Claude says whether a change is comfortable or risky, and they decide each time.
    - `developer-reviews`: every change waits for the developer.
@@ -118,7 +118,7 @@ For each tool of the plan, in the order the user gave: `tools.md`, from search t
 
 Fill the knowledge files. Read before asking.
 
-- From `~/.railway-pilot/repo/`: the stack, where screens and texts live, migrations or model definitions. Write `codebase.md` (where things are, conventions, files that always need a developer: authentication, payment, migrations, configuration) and a first `schema.md` (what each table is for, which tables hold personal or sensitive data).
+- From `~/.cockpit/repo/`: the stack, where screens and texts live, migrations or model definitions. Write `codebase.md` (where things are, conventions, files that always need a developer: authentication, payment, migrations, configuration) and a first `schema.md` (what each table is for, which tables hold personal or sensitive data).
 - Ask 5 to 10 questions the code cannot answer, as choices when possible: what their customers are called, what the main statuses mean, which figures they follow every week, what a typical support request looks like.
 - Show a short summary of everything you understood, from the code and from their answers, and get it validated before writing any of the four files.
 

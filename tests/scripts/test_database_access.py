@@ -10,8 +10,8 @@ PUBLIC_URL = "postgresql://postgres:s3cr3t-p%40ss@shuttle.proxy.rlwy.net:15140/r
 class DatabaseAccessTest(ScriptTestCase):
     def setUp(self):
         super().setUp()
-        self.write("pilot-home/saas-project/.keep", "")
-        self.env["RP_CLIPBOARD"] = "cat > " + shlex.quote(self.path("clipboard"))
+        self.write("cockpit-home/saas-project/.keep", "")
+        self.env["COCKPIT_CLIPBOARD"] = "cat > " + shlex.quote(self.path("clipboard"))
         self.railway_answers({"DATABASE_PUBLIC_URL": PUBLIC_URL, "PGDATA": "/var/lib/postgresql/data"})
 
     def railway_answers(self, payload):

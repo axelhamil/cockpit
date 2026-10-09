@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
-mkdir -p "$HOME/.railway-pilot"
-cat > "$HOME/.railway-pilot/state.md" <<STATE
+mkdir -p "$HOME/.cockpit"
+cat > "$HOME/.cockpit/state.md" <<STATE
 ---
 schema_version: 1
 language: en
@@ -24,7 +24,7 @@ dependencies: git, railway, gh
 
 ## Code
 - Merge policy: ask-me
-- Clone: ~/.railway-pilot/repo
+- Clone: ~/.cockpit/repo
 
 ## Tools project
 - Project: acme tools (22222222-2222-2222-2222-222222222222)
@@ -32,7 +32,7 @@ dependencies: git, railway, gh
 ## Tools
 - metabase: project tools, template metabase, services metabase and metabase-db, URL https://metabase.example.com, driven by mcp, app data connected
 STATE
-cat > "$HOME/.railway-pilot/schema.md" <<SCHEMA
+cat > "$HOME/.cockpit/schema.md" <<SCHEMA
 # Schema
 
 - studio: a yoga studio that uses the app. Columns: id, name, city, created_at, deleted_at, is_demo.
@@ -42,7 +42,7 @@ cat > "$HOME/.railway-pilot/schema.md" <<SCHEMA
 
 There is no plan, subscription or payment table: studios are invoiced by hand, outside the app.
 SCHEMA
-cat > "$HOME/.railway-pilot/tools.md" <<TOOLS
+cat > "$HOME/.cockpit/tools.md" <<TOOLS
 # Tools
 
 - metabase: connected to the app data on 2026-10-08. Nothing built yet.

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-state_home=${RAILWAY_PILOT_HOME:-${HOME:-}/.railway-pilot}
+state_home=${COCKPIT_HOME:-${HOME:-}/.cockpit}
 state_file=$state_home/state.md
 header_line_limit=50
 carriage_return=$(printf '\r')
@@ -123,7 +123,7 @@ print_dependencies() {
 }
 
 print_context() {
-  printf 'railway-pilot session context\n'
+  printf 'cockpit session context\n'
 
   current_version=unknown
 
@@ -185,7 +185,7 @@ print_context() {
   fi
 }
 
-(print_context) || printf 'note: railway-pilot could not finish its session check, the state may need a repair\n'
-printf 'Load the railway-pilot skill before answering the first request of this session.\n'
+(print_context) || printf 'note: cockpit could not finish its session check, the state may need a repair\n'
+printf 'Load the cockpit skill before answering the first request of this session.\n'
 
 exit 0
