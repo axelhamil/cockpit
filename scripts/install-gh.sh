@@ -44,6 +44,10 @@ if ! curl -fsSL -o "$work_dir/gh.zip" "$asset_url" 2>/dev/null; then
   fail "The GitHub CLI download failed. Nothing was installed. Check the internet connection, then retry."
 fi
 
+if ! python3 "$script_dir/gh_release.py" verify-download "$architecture" "$work_dir/gh.zip" <"$work_dir/release.json"; then
+  fail "The downloaded GitHub CLI does not match the fingerprint GitHub publishes for it. Nothing was installed. Retry, and tell the plugin maintainer if it fails again."
+fi
+
 if ! python3 "$script_dir/gh_release.py" extract-binary "$work_dir/gh.zip" "$work_dir/gh"; then
   fail "The downloaded GitHub CLI archive does not have the expected content. Nothing was installed. Tell the plugin maintainer."
 fi

@@ -1,13 +1,37 @@
 import copy
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
 
 
+GITHUB_REPOSITORY = re.compile(r"https://github\.com/([A-Za-z0-9_-][A-Za-z0-9._-]*/[A-Za-z0-9_-][A-Za-z0-9._-]*?)(?:\.git)?/?")
+
+
 class SettingsError(Exception):
     pass
+
+
+class ManifestError(Exception):
+    pass
+
+
+def plugin_repository(manifest_path):
+    try:
+        with open(manifest_path, encoding="utf-8") as handle:
+            manifest = json.load(handle)
+    except (OSError, ValueError):
+        raise ManifestError("cannot be read")
+
+    repository = manifest.get("repository") if isinstance(manifest, dict) else None
+    match = GITHUB_REPOSITORY.fullmatch(repository) if isinstance(repository, str) else None
+
+    if not match:
+        raise ManifestError("does not name the GitHub repository of the plugin")
+
+    return match.group(1)
 
 
 def marketplace_entry(repository):
@@ -148,7 +172,7 @@ def forget_backup(mode, backup_path):
         os.unlink(backup_path)
 
 
-def apply(mode, settings_arg, permissions_path, marketplace, repository):
+def apply(mode, settings_arg, permissions_path, marketplace, manifest_path):
     settings_path = os.path.realpath(settings_arg)
     backup_path = settings_arg + ".before-cockpit"
 
@@ -165,7 +189,7 @@ def apply(mode, settings_arg, permissions_path, marketplace, repository):
         drop_emptied(settings, before)
     else:
         changed = merge_permissions(settings, shipped)
-        merge_marketplace(settings, marketplace, repository)
+        merge_marketplace(settings, marketplace, plugin_repository(manifest_path))
 
     if settings == original and (mode == "remove" or os.path.exists(settings_path)):
         forget_backup(mode, backup_path)
@@ -186,10 +210,17 @@ def apply(mode, settings_arg, permissions_path, marketplace, repository):
 
 
 def main():
-    mode, settings_arg, permissions_path, marketplace, repository = sys.argv[1:6]
+    mode, settings_arg, permissions_path, marketplace, manifest_path = sys.argv[1:6]
 
     try:
-        changed = apply(mode, settings_arg, permissions_path, marketplace, repository)
+        changed = apply(mode, settings_arg, permissions_path, marketplace, manifest_path)
+    except ManifestError as error:
+        sys.stderr.write(
+            "The plugin file {} {}. Nothing was changed. Update or reinstall cockpit, then run this step again.\n".format(
+                manifest_path, error
+            )
+        )
+        sys.exit(1)
     except SettingsError as error:
         sys.stderr.write(
             "The Claude settings file {} {}. Nothing was changed. A developer has to repair that file, then this step can run again.\n".format(

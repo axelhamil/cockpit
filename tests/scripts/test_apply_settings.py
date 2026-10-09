@@ -3,9 +3,9 @@ import os
 import stat
 import unittest
 
-from support import SCRIPTS_DIR, ScriptTestCase
+from support import REPO_ROOT, SCRIPTS_DIR, ScriptTestCase
 
-ARGUMENTS = ["--marketplace", "cockpit", "--repo", "acme/cockpit"]
+ARGUMENTS = ["--marketplace", "cockpit"]
 
 
 def replaced(option, value):
@@ -19,10 +19,19 @@ def shipped_permissions():
         return json.load(handle)["permissions"]
 
 
+def shipped_repository():
+    with open(os.path.join(REPO_ROOT, ".claude-plugin", "plugin.json"), encoding="utf-8") as handle:
+        return json.load(handle)["repository"]
+
+
 class ApplySettingsTest(ScriptTestCase):
     def setUp(self):
         super().setUp()
         self.env["CLAUDE_SETTINGS"] = self.path("claude/settings.json")
+        self.env["COCKPIT_PLUGIN_MANIFEST"] = self.plugin_manifest("https://github.com/acme/cockpit")
+
+    def plugin_manifest(self, repository):
+        return self.write("plugin/plugin.json", json.dumps({"name": "cockpit", "repository": repository}))
 
     def settings(self):
         return json.loads(self.read("claude/settings.json"))
@@ -118,11 +127,12 @@ class ApplySettingsTest(ScriptTestCase):
         self.assertEqual(self.read("claude/settings.json.before-cockpit"), '{"permissions": {"allow": ["Bash(ls *)"]}}')
         self.assertEqual(sorted(os.listdir(self.path("claude"))), ["settings.json", "settings.json.before-cockpit"])
 
-    def test_given_a_later_run_with_another_repository_then_the_first_backup_is_kept(self):
+    def test_given_a_later_run_after_the_plugin_moved_then_the_first_backup_is_kept(self):
         self.write("claude/settings.json", '{"model": "opus"}')
         self.apply()
+        self.plugin_manifest("https://github.com/acme/moved")
 
-        result = self.apply(replaced("--repo", "acme/moved"))
+        result = self.apply()
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.settings()["extraKnownMarketplaces"]["cockpit"]["source"]["repo"], "acme/moved")
@@ -191,20 +201,23 @@ class ApplySettingsTest(ScriptTestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(self.exists("claude"))
-        self.assertIn("permissions", json.loads(self.read(".claude/settings.json")))
+        written = json.loads(self.read(".claude/settings.json"))
+        self.assertIn("permissions", written)
+        self.assertEqual(
+            "https://github.com/" + written["extraKnownMarketplaces"]["cockpit"]["source"]["repo"],
+            shipped_repository(),
+        )
 
     def test_given_invalid_arguments_then_exit_2_and_nothing_is_written(self):
         cases = (
             replaced("--marketplace", "bad name"),
             replaced("--marketplace", ""),
-            replaced("--repo", "no-owner"),
-            replaced("--repo", "a/b/c"),
-            ARGUMENTS[2:],
-            ARGUMENTS[:2],
+            [],
             ARGUMENTS + ["--unknown", "x"],
             ARGUMENTS + ["--saas-project", "11111111-2222-3333-4444-555555555555"],
             ARGUMENTS + ["--deployed-branch", "main"],
-            ARGUMENTS + ["--repo"],
+            ARGUMENTS + ["--repo", "attacker/cockpit"],
+            ["--remove"] + ARGUMENTS + ["--repo", "acme/cockpit"],
         )
 
         for arguments in cases:
@@ -255,8 +268,35 @@ class ApplySettingsTest(ScriptTestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(self.exists("claude/settings.json"))
 
-    def test_given_a_repository_with_remove_then_the_usage_is_shown(self):
-        result = self.apply(["--remove", "--marketplace", "cockpit", "--repo", "acme/cockpit"])
+    def test_given_a_plugin_file_without_a_github_repository_then_nothing_is_written(self):
+        cases = (
+            "https://example.com/acme/cockpit",
+            "https://github.com/acme",
+            "https://github.com/acme/cockpit/tree/main",
+            "https://github.com/acme/..",
+            "https://github.com/../cockpit",
+            "acme/cockpit",
+            "",
+        )
 
-        self.assertEqual(result.returncode, 2)
-        self.assertIn("Usage", result.stderr)
+        for repository in cases:
+            with self.subTest(repository=repository):
+                self.plugin_manifest(repository)
+
+                result = self.apply()
+
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("Nothing was changed", result.stderr)
+
+        self.assertFalse(self.exists("claude"))
+
+    def test_given_the_shipped_plugin_file_then_its_repository_is_the_marketplace_source(self):
+        del self.env["COCKPIT_PLUGIN_MANIFEST"]
+
+        result = self.apply()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            "https://github.com/" + self.settings()["extraKnownMarketplaces"]["cockpit"]["source"]["repo"],
+            shipped_repository(),
+        )
