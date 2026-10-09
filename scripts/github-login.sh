@@ -39,7 +39,7 @@ esac
 trap empty_clipboard EXIT
 
 login_status=0
-login_output=$(printf '%s' "$token" | "$gh_bin" auth login --with-token --hostname github.com 2>&1) || login_status=$?
+login_output=$(printf '%s' "$token" | "$gh_bin" auth login --with-token --hostname github.com --git-protocol https 2>&1) || login_status=$?
 
 if [ "$login_status" -ne 0 ]; then
   printf '%s\n' "GitHub did not accept the token, so nothing was saved and the clipboard was emptied. Create a new fine-grained token for the repository, copy it, then retry. Answer from GitHub:" >&2
