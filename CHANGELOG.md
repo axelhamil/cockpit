@@ -1,3 +1,12 @@
+# [1.3.0](https://github.com/axelhamil/railway-pilot/compare/v1.2.0...v1.3.0) (2026-10-09)
+
+
+### Features
+
+* **tools:** add standard setups fitted to the app ([a5fb02f](https://github.com/axelhamil/railway-pilot/commit/a5fb02ff52bce7ed86a068b3c853abf73e0ab166))
+* **tools:** offer to enrich installed tools without being asked ([65186ae](https://github.com/axelhamil/railway-pilot/commit/65186ae9f08f0238a522d91db4e3cb6fab4f823a))
+* warn at session start, show in the browser, undo and repair ([f3077f1](https://github.com/axelhamil/railway-pilot/commit/f3077f1a84736b71345276ac14983c77d39d9658))
+
 # [1.2.0](https://github.com/axelhamil/railway-pilot/compare/v1.1.0...v1.2.0) (2026-10-09)
 
 
