@@ -105,7 +105,7 @@ The plugin directory is read-only on the client. The guard blocks any write to i
 The README holds one English message to paste into Claude Code. It chains:
 
 1. `xcode-select -p`; if absent, `xcode-select --install`, tell the client to click Install, poll `git --version` until it succeeds.
-2. Add the marketplace and install the plugin (`claude plugin install railway-pilot --marketplace <owner>/railway-pilot`).
+2. Add the marketplace and install the plugin (`claude plugin marketplace add <owner>/railway-pilot`, then `claude plugin install railway-pilot@railway-pilot`). The one-command `--marketplace` form needs Claude Code 2.1.292 or above and failed on a client Mac.
 3. Start onboarding.
 
 Onboarding writes `autoUpdate: true` for this marketplace in `~/.claude/settings.json`. On every session `session-check.sh` reports the plugin version, the state version and any missing dependency, so the skill can offer a migration or a guided repair.
