@@ -12,6 +12,7 @@ dependencies: git, railway, gh
 
 ## Profile
 - Usages: tools, app changes, health, diagnosis
+- User: Sam Carter, sam@example.com
 - Developer: Sam, @sam-dev, channel: github
 
 ## SaaS project
@@ -26,5 +27,5 @@ dependencies: git, railway, gh
 - Clone: ~/.railway-pilot/repo
 
 ## Tools
-- metabase: template metabase, URL https://metabase.example.com, driven by mcp, database role metabase_read
+- metabase: template metabase, URL https://metabase.example.com, driven by mcp, app data connected
 STATE

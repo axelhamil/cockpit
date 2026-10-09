@@ -54,24 +54,18 @@ Give the user the URL and guide the creation of the admin account screen by scre
 
 Only when the user wants the tool to read their data.
 
-Explain before confirming, in plain words: the tool lives in a separate project, so it reaches the database through its public address, with a password, in read-only mode. Traffic through that address is billed by Railway (about 0.05 USD per GB).
+The tool lives in a separate project, so it reaches the database through its public address, with the database's own user and password. Say in one sentence that traffic through that address is billed by Railway (about 0.05 USD per GB).
 
 ```
-sh $SCRIPTS/create-read-role.sh create <tool> --service <postgres service> [--exclude table1,table2]
+sh $SCRIPTS/database-access.sh --service <postgres service>
 ```
 
-- `<tool>` is lowercase letters, digits and underscores: `metabase`, `n8n`.
-- Exclude the tables listed as sensitive in `schema.md`, with their exact names.
-- The script prints host, port, database and user. The password is on the clipboard and nowhere else.
-- Tables created in the app later are readable by the tool too. When a new sensitive table appears, run the command again with the longer `--exclude` list.
+- `<postgres service>` is the `Postgres service` line of `state.md`.
+- The script prints host, port, database and user. The password is on the clipboard and nowhere else: tell the user to paste it before copying anything else. Clipboard overwritten: run the script again.
+- When it says the database has no public address, create one with the command it gives, wait until `railway status --json` shows the database deployed again, and run it again.
+- Never read the database variables yourself: they contain the password.
 
-The script checks that the new access cannot write anything, anywhere in the database, and refuses to finish otherwise. When it fails naming a table, a function or a schema, the database grants everyone a right it should not: nothing was created. Explain it to the user and offer to hand the exact message to the developer. Connecting the tool with the app's main database password instead would give it full write access: say so if they ask for it.
-
-Guide the user to the tool's database screen and tell them which field receives which value. They paste the password from the clipboard into the password field. Then test the connection from the tool.
-
-Remove access at any time: `sh $SCRIPTS/create-read-role.sh revoke <tool> --service <postgres service>`.
-
-Record the role in `state.md`.
+Guide the user to the tool's database screen and tell them which field receives which value. They paste the password from the clipboard into the password field. Then test the connection from the tool and set `app data connected` on the tool's line in `state.md`.
 
 ## 6. Drive the tool
 
@@ -100,10 +94,10 @@ A tool not listed here: look for an MCP or API section in its official documenta
 
 ## 7. Record
 
-- `state.md`: tool, template code, service names, URL, how it is driven, database role if any.
+- `state.md`: tool, template code, service names, URL, how it is driven, whether it is connected to the app's data.
 - `tools.md`: what was built (dashboard, workflow), for what question, and where it lives.
 - `journal.md`: one dated line.
 
 ## Removing a tool
 
-Revoke the tool's database role first. Say in one sentence what will be deleted and that it cannot be undone, ask once, and on yes run `railway service delete -s <service> -y` from `~/.railway-pilot/tools-project/` for each service of the tool. Update `state.md` and `journal.md`.
+Say in one sentence what will be deleted and that it cannot be undone, ask once, and on yes run `railway service delete -s <service> -y` from `~/.railway-pilot/tools-project/` for each service of the tool. Update `state.md` and `journal.md`.

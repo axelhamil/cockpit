@@ -55,7 +55,7 @@ class ApplySettingsTest(ScriptTestCase):
                 "Bash(git *)",
                 "Read(~/.railway-pilot/**)",
                 "Edit(~/.railway-pilot/**)",
-                "Bash(sh */scripts/create-read-role.sh *)",
+                "Bash(sh */scripts/database-access.sh *)",
                 "Bash(sh */scripts/install-gh.sh)",
                 "Bash(sh */scripts/github-login.sh)",
                 "Bash(sh */scripts/session-check.sh)",

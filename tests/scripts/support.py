@@ -9,21 +9,6 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 SCRIPTS_DIR = os.path.join(REPO_ROOT, "scripts")
 SHELL = shutil.which("sh")
 
-FAKE_PSQL = """
-import hashlib
-import os
-import re
-import sys
-
-sql = sys.stdin.read()
-with open(os.environ["FAKE_SQL"], "a") as handle:
-    handle.write(sql)
-if os.environ.get("FAKE_PSQL_OUTPUT"):
-    print(os.environ["FAKE_PSQL_OUTPUT"])
-nonce = re.search(r"md5\\('([0-9a-f]+)'\\)", sql).group(1)
-print(" rp-" + hashlib.md5(nonce.encode()).hexdigest())
-"""
-
 
 class ScriptTestCase(unittest.TestCase):
     def setUp(self):
@@ -77,11 +62,6 @@ class ScriptTestCase(unittest.TestCase):
     def install_fake_railway(self, body):
         self.env["RAILWAY_BIN"] = self.install_command("railway", body)
         return self.env["RAILWAY_BIN"]
-
-    def fake_psql_command(self):
-        script = self.write("fake_psql.py", FAKE_PSQL)
-        self.env["FAKE_SQL"] = self.path("received.sql")
-        return "python3 " + shlex.quote(script)
 
     def isolated_path(self, *system_tools):
         directory = self.path("isolated-bin")

@@ -2,12 +2,12 @@
 
 A Claude Code plugin for non-technical teams whose SaaS runs on Railway. They talk to Claude, and Claude:
 
-- deploys a tool from the Railway template marketplace (Metabase, n8n, Uptime Kuma), connects it to their data in read-only mode, and builds its content;
+- deploys a tool from the Railway template marketplace (Metabase, n8n, Uptime Kuma), connects it to their data, and builds its content;
 - makes small changes to the app through a pull request;
 - reports health, logs, costs and backups;
 - hands work to their developer with a file ready to process when a review is the safer route.
 
-It is the team's project and the team decides. Claude does what is asked and reports it in plain words. Nothing is blocked, and it asks only before what cannot be undone. What bounds the damage is the GitHub token limited to one repository, the pull request flow, and the backups set up during onboarding.
+It is the team's project and the team decides. Claude does what is asked and reports it in plain words. Nothing is blocked, and it asks only before what cannot be undone. What keeps a way back is the pull request flow and the backups set up during onboarding. Claude signs in to Railway and GitHub with the user's own accounts, and passwords go through the clipboard, never through the conversation.
 
 ## Install
 
@@ -48,7 +48,5 @@ sh tests/scripts/run.sh
 claude plugin validate .
 claude plugin eval . --scaffold --runs 1
 ```
-
-The script tests start a Postgres container with Docker to prove the read-only role.
 
 Design: `docs/superpowers/specs/2026-10-09-railway-pilot-design.md`.

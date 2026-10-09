@@ -52,10 +52,10 @@ The plugin ships scripts in `${CLAUDE_PLUGIN_ROOT}/scripts`. The session context
 
 | Script | Purpose |
 |---|---|
-| `create-read-role.sh` | Read-only database access for a tool |
+| `database-access.sh` | Database address for a tool, password on the clipboard |
 | `apply-settings.sh` | Fewer permission prompts and automatic plugin updates |
 | `install-gh.sh` | GitHub CLI |
-| `github-login.sh` | GitHub sign-in from a token on the clipboard |
+| `github-login.sh` | GitHub sign-in in the browser |
 
 ## Rules
 

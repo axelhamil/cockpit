@@ -1,6 +1,6 @@
 # Dependencies
 
-Install only what the plan in `state.md` lists. Present the list, get one confirmation, install everything, verify everything, then record each dependency with its version in `state.md`.
+Install only what the plan in `state.md` lists. Say in one sentence what will be installed, install everything, verify everything, then record each dependency with its version in `state.md`.
 
 Claude Desktop reads `PATH` from `~/.zshrc` when the app starts. Right after an install the new command is not on `PATH` yet: prefix commands with `PATH="$HOME/.railway/bin:$HOME/.local/bin:$PATH"` until the user restarts the app, and ask for that restart at the end of the install phase.
 
@@ -26,7 +26,7 @@ Claude Desktop reads `PATH` from `~/.zshrc` when the app starts. Right after an 
 - Needed: when the profile includes changes to the app, understanding problems, or a developer reachable on GitHub.
 - Check: `gh --version`
 - Install: `sh $SCRIPTS/install-gh.sh`. No password. The binary lands in `~/.local/bin`.
-- Sign in: see `onboarding.md`, GitHub step. Never `gh auth login` with the web flow: it grants access to every repository of the account.
+- Sign in: `sh $SCRIPTS/github-login.sh`, in the browser, with the user's own GitHub account. Details in `onboarding.md`, GitHub step. Verify with `gh auth status`.
 
 ### Node.js
 
@@ -41,4 +41,4 @@ The session context lists dependencies as present or missing. For a missing one:
 
 ## Adding a dependency later
 
-Same procedure: explain why it is needed, get confirmation, install, verify, record. A dependency that is not in this catalogue is not installed: write the need in `proposals.md` and escalate if it blocks the user.
+Same procedure: say in one sentence why it is needed, install, verify, record. A dependency that is not in this catalogue is not installed: write the need in `proposals.md` and escalate if it blocks the user.
