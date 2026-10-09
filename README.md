@@ -1,31 +1,46 @@
 # cockpit
 
-A Claude Code plugin for non-technical teams whose SaaS runs on Railway. They talk to Claude, and Claude:
+**Run your SaaS by talking to Claude.**
 
-- deploys a tool from the Railway template marketplace (Metabase, n8n, Uptime Kuma), in a separate project by default or inside the app's project on request, connects it to their data, and fills it with a standard setup fitted to their app: steering dashboards, linked sheets per customer, alerts, monitors;
-- makes small changes to the app through a pull request;
-- reports health, logs, costs and backups in one screen, and says so at the start of a session when a service is down;
-- shows results in the Browser pane of Claude Desktop instead of describing them, and does the clicking in admin screens;
-- undoes the last change on request;
-- hands work to their developer as a GitHub issue ready to process when a review is the safer route.
+Your app runs on Railway, you are not a developer, and you are tired of waiting for one each time you want a dashboard, a number or a small change. With cockpit, you ask Claude in your own words, and Claude does the work on your app and the tools around it.
 
-It is the team's project and the team decides. Claude does what is asked and reports it in plain words. Nothing is blocked, and it asks only before what cannot be undone. What keeps a way back is the pull request flow and the backups set up during onboarding. Claude signs in to Railway and GitHub with the user's own accounts, and passwords go through the clipboard, never through the conversation.
+You never type a command and never open a file. Claude does it, shows you the result, and tells you what it did in plain words.
 
-## Why cockpit and not Claude on its own
+## What you can ask
 
-cockpit is for someone who is not a developer, has Claude Desktop with a paid plan, and wants to handle more of their SaaS themselves instead of waiting for their developer each time.
+- "How is the app doing this morning?"
+- "Show me everything we know about this customer."
+- "Build me a dashboard of sign-ups and revenue per week."
+- "Send me a summary every Monday."
+- "Warn me when the site goes down."
+- "Change the text on the pricing page."
+- "How much did we spend on hosting last month?"
+- "Cancel what you just did."
 
-It adds no model and no service: it is Claude, with the method written down. On its own, Claude can do all of this only for someone who already knows what to ask, in which order, and what could go wrong. cockpit knows that for them.
+Some of these need a tool to be in place first. Claude adds it when you ask.
 
-- **Nothing to set up by hand.** Claude on its own waits for the tools, the sign-ins and the permissions to be in place. cockpit installs what the plan needs, signs in with the team's accounts, and sets backups and a spending alert before it adds any tool.
-- **It remembers the business.** A new Claude session starts from zero. cockpit keeps what it learned on the Mac (what a customer is called, what each table is for, what was built in each tool) and reads it before answering.
-- **It knows how the app is doing before being asked.** Each session starts with a check of the deployments, and a service that is down is said in the first answer.
-- **It does not guess commands.** The Railway and GitHub commands it relies on were checked against a real run or the official documentation, and are listed in `docs/verified-facts.md`.
-- **There is a way back.** Changes to the app go through a pull request, the database is backed up before it is touched, each change is journaled with how to undo it, and Claude asks only before what cannot be undone.
-- **It knows what a tool should contain.** A fresh Metabase or n8n is empty. cockpit fills it with a standard setup fitted to the app, then offers the next useful piece.
-- **It talks to people who are not developers.** Result first, in their language, no command to type, and passwords go through the clipboard, never through the conversation.
-- **It knows when to stop.** When a review is the safer route, the work goes to the team's developer as a GitHub issue ready to process.
-- **It is tested.** The scripts have tests and the behaviour is guarded by evals, so an update does not quietly change how Claude acts.
+## What Claude does for you
+
+- **Adds the tools you are missing.** Dashboards (Metabase), automations (n8n), uptime monitoring (Uptime Kuma). Claude installs the tool, connects it to your data and fills it with a first setup fitted to your app, so you never start from an empty screen. The tools run on your own Railway account and are billed there by usage.
+- **Makes small changes to your app.** A text, a label, a screen. Each change is prepared apart from the live app before it goes online.
+- **Watches over the app.** Health, errors, costs and backups in one screen. When something is down, Claude says so in its first answer, before you ask.
+- **Shows instead of describing.** The result opens in the Browser pane of Claude Desktop, and Claude does the clicking in the settings screens of your tools.
+- **Remembers your business.** What you call a customer, what each piece of data means, what was built in each tool. Claude reads it again at the start of every conversation.
+- **Knows when to call your developer.** When a review is the safer route, Claude writes the request for them, ready to process, and you decide.
+
+## You stay in charge
+
+- **It is your project.** Claude does what you ask, and asks you first before anything risky or anything that cannot be undone, like deleting data.
+- **There is a way back.** Backups are set up from the start, Claude takes a fresh one before changing your data, every change is written down with how to undo it, and "cancel that" works.
+- **Your passwords stay private.** Claude works with your own Railway and GitHub accounts and never sees their passwords: you type them in your browser. Database passwords and tool keys travel through the clipboard, never through the conversation.
+- **Your data stays with you.** What Claude learns about your business lives in a folder on your Mac.
+
+## What you need
+
+- A Mac
+- Claude Desktop with a paid plan
+- An app hosted on Railway, and a Railway account that is a member of the app's project
+- A GitHub account with access to the code of your app, for Claude to change the app, look into problems or hand work to your developer
 
 ## Install
 
@@ -53,16 +68,30 @@ Node.js is installed only if a chosen tool cannot be driven any other way, and t
 
 What Claude learns about the business stays in `~/.cockpit/` on the Mac. Plugin updates never touch it.
 
-## Commands
+## Shortcuts
 
-- `/cockpit:onboard`: add a usage or a tool, or resume the setup
+Plain sentences are enough. You can also type:
+
+- `/cockpit:onboard`: add something you want to do or a tool, or resume the setup
 - `/cockpit:status`: how the app is doing, in one screen
 - `/cockpit:undo`: go back on the last change
 - `/cockpit:repair`: fix the setup on this Mac, or remove cockpit
 - `/cockpit:review-session`: save what was learned in the conversation
-- `/cockpit:report`: send improvement proposals to the plugin maintainer
+- `/cockpit:report`: send improvement ideas to the people who make cockpit
 
-## Development
+## Updates
+
+cockpit updates by itself. After an update, Claude tells you in a sentence or two what you can now ask for. When an update changes how your saved setup is organised, Claude reorganises it for you and keeps a backup. There is nothing to do on your side.
+
+## Why not Claude on its own
+
+cockpit is not a separate product: it is Claude, with the method written down. On its own, Claude can do all of this only for someone who already knows what to ask, in which order, and what could go wrong. cockpit knows that for you.
+
+- **It prepares the ground.** Before it adds any tool, cockpit signs in with your accounts and sets backups and a spending alert.
+- **It reads before it answers.** A new Claude conversation forgets the previous one. cockpit reads what it learned about your business and checks how the app is doing first.
+- **It was checked.** What it does on Railway and GitHub was verified against real runs and the official documentation, and every update is tested so Claude keeps acting the same way.
+
+## For developers
 
 ```
 sh tests/scripts/run.sh
@@ -70,4 +99,4 @@ claude plugin validate .
 claude plugin eval . --scaffold --runs 1
 ```
 
-Design: `docs/superpowers/specs/2026-10-09-cockpit-design.md`.
+How the plugin fits together: `CLAUDE.md`. Design: `docs/superpowers/specs/2026-10-09-cockpit-design.md`.
