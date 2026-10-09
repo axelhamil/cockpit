@@ -328,7 +328,7 @@ class SessionCheckLayoutTest(ScriptTestCase):
         self.build_state_v1()
         log = self.path("railway.log")
         self.install_fake_railway(
-            'echo "$1 $(pwd)" >>"' + log + '"\nif [ "$1" = status ]; then echo \'' + CRASHED_STATUS + "'; fi\n"
+            'echo "$1 $(pwd -P)" >>"' + log + '"\nif [ "$1" = status ]; then echo \'' + CRASHED_STATUS + "'; fi\n"
         )
 
         result = self.check()
@@ -359,7 +359,7 @@ class SessionCheckLayoutTest(ScriptTestCase):
         )
         log = self.path("railway.log")
         self.install_fake_railway(
-            'echo "$1 $(pwd)" >>"' + log + '"\nif [ "$1" = status ]; then echo \'' + CRASHED_STATUS + "'; fi\n"
+            'echo "$1 $(pwd -P)" >>"' + log + '"\nif [ "$1" = status ]; then echo \'' + CRASHED_STATUS + "'; fi\n"
         )
 
         result = self.check()
