@@ -9,7 +9,7 @@ Something stopped working, a `health: not checked` line, a missing dependency, o
 | `railway whoami` | error or "Unauthorized" | `railway login` (tell the user first: a browser tab opens, they approve), in the background |
 | `railway status --json` in `$PROJECT/saas-project/` | no linked project | `railway link -p <project id> -e <environment>` with the values of `state.md` |
 | Same in `$PROJECT/tools-project/`, when a tool is recorded as `project tools` | no linked project | same, with the tools project |
-| `railway links: to refresh` in the session context | the folders moved with the saved setup | `sh $SCRIPTS/relink.sh --project <slug>`, with the slug of the `active project:` line. If it fails, fix the two Railway rows above first |
+| `railway links: to refresh` in the session context | the folders moved with the saved setup and the session start could not link them again | fix the `railway whoami` row and check that the account is a member of the project, then `sh $SCRIPTS/relink.sh --project <slug>`, with the slug of the `active project:` line. It links both folders |
 | `gh auth status --hostname github.com`, when GitHub is in the plan | not logged in | `onboarding.md`, GitHub step |
 | `git -C $PROJECT/repo status` | no clone, or not a repository | `gh repo clone <owner>/<repo> $PROJECT/repo` |
 | Dependencies of the session context | `missing` | `dependencies.md` |

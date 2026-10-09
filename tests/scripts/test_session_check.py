@@ -6,6 +6,14 @@ import tempfile
 from support import SCRIPTS_DIR, ScriptTestCase
 
 LAST_LINE = "Load the cockpit skill before answering the first request of this session."
+NEWER_LINE = "state: written by a newer cockpit, left untouched"
+LINKS_LINE = "railway links: to refresh"
+HEALTH_WITHOUT_LINKS = "health: not checked, the Railway links are to refresh"
+HEALTH_WITHOUT_ANSWER = "health: not checked, Railway did not answer (sign-in expired or no network)"
+CRASHED_STATUS = (
+    '{"environments":{"edges":[{"node":{"name":"production","serviceInstances":{"edges":'
+    '[{"node":{"serviceName":"web","latestDeployment":{"status":"CRASHED"}}}]}}}]}}'
+)
 
 
 class SessionCheckTest(ScriptTestCase):
@@ -52,12 +60,12 @@ class SessionCheckTest(ScriptTestCase):
         self.assertIn("dependency railway: missing", result.stdout)
 
     def test_given_complete_state_then_onboarding_is_reported_complete(self):
-        self.write_state("---\r\nschema_version: 12\r\nlanguage: pt-BR\r\nonboarding: complete\r\ndependencies: railway\r\n---\r\n")
+        self.write_state("---\r\nschema_version: 1\r\nlanguage: pt-BR\r\nonboarding: complete\r\ndependencies: railway\r\n---\r\n")
 
         result = self.check()
 
         self.assertEqual(result.returncode, 0)
-        self.assertIn("state schema version: 12", result.stdout)
+        self.assertIn("state schema version: 1\n", result.stdout)
         self.assertIn("language: pt-BR", result.stdout)
         self.assertIn("onboarding: complete", result.stdout)
         self.assertIn("dependency railway: missing", result.stdout)
@@ -159,7 +167,11 @@ class SessionCheckTest(ScriptTestCase):
     def test_given_onboarding_complete_and_a_crashed_service_then_the_context_carries_the_problem(self):
         self.env["PATH"] = os.environ["PATH"]
         self.write("cockpit-home/saas-project/.keep", "")
-        self.write_state("---\nschema_version: 1\nlanguage: fr\nonboarding: complete\ndependencies: railway\n---\n")
+        self.write_state(
+            "---\nschema_version: 1\nlanguage: fr\nonboarding: complete\ndependencies: railway\n---\n\n"
+            "## SaaS project\n- Project: Acme (11111111-1111-1111-1111-111111111111)\n"
+            "- Production environment: production\n- App service: web\n"
+        )
         self.install_fake_railway(
             "echo '"
             '{"environments":{"edges":[{"node":{"name":"production","serviceInstances":{"edges":'
@@ -227,7 +239,6 @@ class SessionCheckTest(ScriptTestCase):
 
         self.assertNotIn("plugin version changed", result.stdout)
         self.assertNotIn("not recorded", result.stdout)
-
 
 
 class SessionCheckLayoutTest(ScriptTestCase):
@@ -299,15 +310,118 @@ class SessionCheckLayoutTest(ScriptTestCase):
             "state: updated to version 2",
             "active project: acme-studio",
             "project directory: " + self.home + "/projects/acme-studio",
-            "railway links: to refresh",
+            LINKS_LINE,
             "state schema version: 2",
             "language: fr",
             "onboarding: complete",
-            "health: not checked, Railway did not answer (sign-in expired or no network)",
+            HEALTH_WITHOUT_LINKS,
         ):
             self.assertIn(line, first)
+        self.assertNotIn(HEALTH_WITHOUT_ANSWER, first)
         self.assertNotIn("state: updated to version 2", second)
-        self.assertIn("railway links: to refresh", second)
+        self.assertIn(LINKS_LINE, second)
+        self.assertIn(HEALTH_WITHOUT_LINKS, second)
+
+    def test_given_a_migrated_state_and_a_railway_that_answers_then_the_links_are_rebuilt_and_health_is_checked(self):
+        self.build_state_v1()
+        log = self.path("railway.log")
+        self.install_fake_railway(
+            'echo "$1 $(pwd)" >>"' + log + '"\nif [ "$1" = status ]; then echo \'' + CRASHED_STATUS + "'; fi\n"
+        )
+
+        result = self.check()
+        lines = result.stdout.splitlines()
+        app = os.path.realpath(self.home) + "/projects/acme-studio"
+
+        self.assert_usable(result)
+        self.assertIn("state: updated to version 2", lines)
+        self.assertFalse(any(line.startswith("railway links:") for line in lines))
+        self.assertIn('health: PROBLEM, service "web" in environment "production" is CRASHED', lines)
+        self.assertFalse(self.exists("cockpit-home/projects/acme-studio/.relink"))
+        with open(log, encoding="utf-8") as handle:
+            calls = handle.read().splitlines()
+        self.assertEqual(
+            calls,
+            ["link " + app + "/saas-project", "link " + app + "/tools-project", "status " + app + "/saas-project"],
+        )
+
+    def test_given_a_railway_that_never_answers_the_relink_then_it_is_stopped_and_the_links_stay_to_refresh(self):
+        self.write_v2_state("acme-studio")
+        self.write("cockpit-home/projects/acme-studio/saas-project/.keep", "")
+        self.write("cockpit-home/projects/acme-studio/.relink", "")
+        self.write(
+            "cockpit-home/projects/acme-studio/state.md",
+            "---\nprovider: railway\nonboarding: complete\n---\n\n## SaaS project\n"
+            "- Project: Acme (11111111-1111-1111-1111-111111111111)\n"
+            "- Production environment: production\n- App service: web\n",
+        )
+        self.install_fake_railway("exec sleep 30\n")
+
+        result = self.check(COCKPIT_RELINK_WAIT="1")
+        lines = result.stdout.splitlines()
+
+        self.assert_usable(result)
+        self.assertEqual(result.stderr, "")
+        self.assertIn(LINKS_LINE, lines)
+        self.assertIn(HEALTH_WITHOUT_LINKS, lines)
+        self.assertTrue(self.exists("cockpit-home/projects/acme-studio/.relink"))
+
+    def test_given_a_version_2_state_recorded_by_an_older_plugin_then_the_version_comes_from_the_user_file(self):
+        self.write_v2_state("acme-studio")
+        self.write(
+            "cockpit-home/projects/acme-studio/state.md",
+            "---\nprovider: railway\nonboarding: complete\nplugin_version: 9.9.9\n---\n",
+        )
+
+        outdated = self.lines()
+        current = next(line for line in outdated if line.startswith("plugin version: ")).split(": ")[1]
+        user_file = self.read("cockpit-home/cockpit.md")
+        self.write("cockpit-home/cockpit.md", user_file.replace("plugin_version: 1.0.0", "plugin_version: " + current))
+        recorded = self.lines()
+
+        self.assertTrue(any(line.startswith("plugin version changed: from 1.0.0 to " + current) for line in outdated))
+        self.assertFalse(any(line.startswith(("plugin version changed", "plugin version: not recorded")) for line in recorded))
+
+    def test_given_a_newer_state_and_no_python_then_it_is_still_left_untouched(self):
+        self.env["PATH"] = self.isolated_path("sh", "sed", "dirname", "uname", "sleep")
+
+        for name in ("cockpit.md", "state.md"):
+            with self.subTest(name=name):
+                shutil.rmtree(self.home)
+                self.write("cockpit-home/" + name, "---\nschema_version: 3\nlanguage: fr\nonboarding: complete\n---\n")
+                before = self.snapshot()
+
+                result = self.check()
+
+                self.assert_usable(result)
+                self.assertEqual(result.stdout.splitlines()[4:], [NEWER_LINE, LAST_LINE])
+                self.assertEqual(self.snapshot(), before)
+
+    def test_given_a_newer_state_and_a_migration_that_crashes_then_it_is_still_left_untouched(self):
+        self.write("cockpit-home/cockpit.md", "---\nschema_version: 3\nlanguage: fr\n---\n")
+
+        result = self.run_plugin(self.plugin_with(migrate_state="exit 1\n"))
+
+        self.assert_usable(result)
+        self.assertEqual(result.stdout.splitlines()[4:], [NEWER_LINE, LAST_LINE])
+
+    def test_given_a_link_in_place_of_the_lock_then_the_reason_of_the_migration_is_passed_on(self):
+        self.build_state_v1()
+        os.symlink(self.path("elsewhere"), os.path.join(self.home, ".migrating"))
+
+        lines = self.lines()
+
+        self.assertIn("migration: failed (a link named .migrating is in the way)", lines)
+        self.assertIn("active project: legacy", lines)
+
+    def test_given_a_plugin_without_its_migration_then_nothing_is_said_about_it(self):
+        self.build_state_v1()
+
+        result = self.run_plugin(self.plugin_with(migrate_state=None))
+
+        self.assert_usable(result)
+        self.assertNotIn("migration", result.stdout)
+        self.assertIn("onboarding: complete", result.stdout.splitlines())
 
     def test_given_a_failed_migration_then_the_session_runs_on_the_version_1_state_as_before(self):
         self.build_state_v1()
@@ -320,7 +434,8 @@ class SessionCheckLayoutTest(ScriptTestCase):
         self.assertIn("project directory: " + self.home, lines)
         self.assertIn("state schema version: 1", lines)
         self.assertIn("onboarding: complete", lines)
-        self.assertNotIn("railway links: to refresh", lines)
+        self.assertIn(HEALTH_WITHOUT_ANSWER, lines)
+        self.assertNotIn(LINKS_LINE, lines)
         self.assertEqual(self.snapshot(), before)
 
     def test_given_a_state_from_a_newer_cockpit_then_nothing_is_read_or_changed(self):
@@ -405,6 +520,7 @@ class SessionCheckLayoutTest(ScriptTestCase):
         lines = result.stdout.splitlines()
 
         self.assert_usable(result)
+        self.assertEqual(result.stderr, "")
         self.assertIn("migration: failed (stopped before the end, status 143)", lines)
         self.assertIn("onboarding: complete", lines)
 

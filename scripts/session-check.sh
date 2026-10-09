@@ -2,7 +2,7 @@
 set -eu
 
 if [ "${COCKPIT_TEST:-}" != 1 ]; then
-  unset COCKPIT_MIGRATION_WAIT
+  unset COCKPIT_MIGRATION_WAIT COCKPIT_RELINK_WAIT
 fi
 
 state_home=${COCKPIT_HOME:-${HOME:-}/.cockpit}
@@ -12,8 +12,10 @@ newline='
 '
 newer_schema_status=3
 several_apps_status=4
+current_schema_version=2
 migration_wait_seconds=${COCKPIT_MIGRATION_WAIT:-20}
-migration_grace_seconds=5
+relink_wait_seconds=${COCKPIT_RELINK_WAIT:-10}
+stop_grace_seconds=5
 updated_state_line='state: updated to version 2'
 newer_state_line='state: written by a newer cockpit, left untouched'
 failed_migration_prefix='migration: failed ('
@@ -166,7 +168,7 @@ stop_after() {
 
   elapsed=0
 
-  while [ "$elapsed" -lt "$migration_grace_seconds" ]; do
+  while [ "$elapsed" -lt "$stop_grace_seconds" ]; do
     sleep 1
     elapsed=$((elapsed + 1))
   done
@@ -174,29 +176,53 @@ stop_after() {
   kill -9 "$1" 2>/dev/null || :
 }
 
-migrate_within_the_wait() {
-  sh "$scripts_dir/migrate-state.sh" 2>/dev/null &
-  migration_pid=$!
+run_within() {
+  limit=$1
+  limited_script=$scripts_dir/$2
+  shift 2
 
-  (stop_after "$migration_pid" "$migration_wait_seconds") >/dev/null 2>&1 &
+  sh "$limited_script" "$@" 2>/dev/null &
+  limited_pid=$!
+
+  (stop_after "$limited_pid" "$limit") >/dev/null 2>&1 &
   watchdog=$!
 
-  migration_exit=0
-  wait "$migration_pid" || migration_exit=$?
+  limited_exit=0
+  wait "$limited_pid" || limited_exit=$?
   kill "$watchdog" 2>/dev/null || :
 
-  return "$migration_exit"
+  return "$limited_exit"
+}
+
+user_file_path() {
+  if [ -f "$state_home/cockpit.md" ]; then
+    printf '%s' "$state_home/cockpit.md"
+  else
+    printf '%s' "$state_home/state.md"
+  fi
+}
+
+is_newer_state() {
+  saved_version=$(known_schema_version "$(state_value schema_version "$(user_file_path)")")
+
+  [ "$saved_version" != unknown ] && [ "$saved_version" -gt "$current_schema_version" ]
 }
 
 run_migration() {
   migration_status=0
   migration_output=
 
-  if [ -z "${scripts_dir:-}" ]; then
+  if is_newer_state; then
+    migration_status=$newer_schema_status
+    printf '%s\n' "$newer_state_line"
     return 0
   fi
 
-  migration_output=$(migrate_within_the_wait) || migration_status=$?
+  if [ -z "${scripts_dir:-}" ] || [ ! -f "$scripts_dir/migrate-state.sh" ]; then
+    return 0
+  fi
+
+  migration_output=$(run_within "$migration_wait_seconds" migrate-state.sh 2>/dev/null) || migration_status=$?
   migration_line=${migration_output%%"$newline"*}
   migration_line=${migration_line%"$carriage_return"}
 
@@ -249,17 +275,33 @@ find_project() {
   fi
 }
 
+refresh_links() {
+  relink_marker=$project_directory/.relink
+
+  if [ ! -e "$relink_marker" ]; then
+    return 0
+  fi
+
+  if [ "$project_slug" != legacy ]; then
+    if run_within "$relink_wait_seconds" relink.sh --project "$project_slug" >/dev/null 2>&1 && [ ! -e "$relink_marker" ]; then
+      return 0
+    fi
+
+    links_to_refresh=1
+  fi
+
+  printf 'railway links: to refresh\n'
+}
+
 announce_project() {
+  links_to_refresh=0
   find_project
 
   if [ "$project_status" = 0 ]; then
     project_file=$project_directory/state.md
     printf 'active project: %s\n' "$project_slug"
     printf 'project directory: %s\n' "$project_directory"
-
-    if [ -e "$project_directory/.relink" ]; then
-      printf 'railway links: to refresh\n'
-    fi
+    refresh_links
     return 0
   fi
 
@@ -280,13 +322,12 @@ announce_project() {
 }
 
 print_health() {
-  health_project=$project_slug
-
-  if [ "$project_slug" = legacy ]; then
-    health_project=
+  if [ "$links_to_refresh" = 1 ]; then
+    printf 'health: not checked, the Railway links are to refresh\n'
+    return 0
   fi
 
-  sh "$scripts_dir/health-check.sh" --project "$health_project" 2>/dev/null || :
+  sh "$scripts_dir/health-check.sh" --project "$project_slug" 2>/dev/null || :
 }
 
 print_context() {
@@ -311,12 +352,7 @@ print_context() {
     return 0
   fi
 
-  user_file=$state_home/state.md
-
-  if [ -f "$state_home/cockpit.md" ]; then
-    user_file=$state_home/cockpit.md
-  fi
-
+  user_file=$(user_file_path)
   announce_project
 
   if [ ! -e "$user_file" ]; then
