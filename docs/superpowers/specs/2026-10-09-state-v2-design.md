@@ -70,7 +70,7 @@ Health at session start runs for every app in parallel, under the same 6 second 
 `scripts/migrate-state.sh` (logic in `migrate_state.py`), called by `session-check.sh` before it reads anything. Local file work only, no network.
 
 1. Detect: a root `state.md` with `schema_version: 1` and no `cockpit.md`. Anything else: do nothing. A `schema_version` above 2: print `state: written by a newer cockpit, left untouched` and stop.
-2. Lock with `mkdir ~/.cockpit/.migrating`. A lock older than 10 minutes belongs to an interrupted run and is taken over.
+2. Lock: an exclusive `flock` on the file `~/.cockpit/.migrating`, held for the whole run. The system releases it when the process dies, so an interrupted run never blocks the next one. A session that does not get the lock within 3 seconds reports `migration: failed (another session is migrating the saved setup)` and works on v1.
 3. Back up every text file of the root to `backups/v1-<timestamp>/`. Folders that can be rebuilt (`repo/`, the two linked folders) are not copied.
 4. Build `projects/<slug>/`: split `state.md` into the user part and the app part, import the memory files (section 6), and rename `repo/`, `saas-project/`, `tools-project/`, `secrets/` into it. Renames stay on one filesystem, so they are atomic and keep file modes.
 5. Write `cockpit.md` with `schema_version: 2`, through a temporary file and a rename. This is the commit point.
@@ -79,8 +79,8 @@ Health at session start runs for every app in parallel, under the same 6 second 
 Rules:
 
 - Rerunning at any point is safe: before the commit point it starts again and skips what is done, after it only finishes the cleanup.
-- An error before the commit point undoes the renames and leaves v1 as it was. The hook prints `migration: failed (<reason>)`, and `project directory` is `~/.cockpit` itself. Every `$PROJECT/...` path then resolves to the v1 location, so the session works as before. `memory.sh` reads the v1 files in place as imported text and appends new entries to them. Claude tells the user once, in one sentence, and writes the reason to `proposals.md`.
-- On success the hook prints `state: updated to version 2`. Claude says so in one sentence and adds a journal line.
+- An error, or a stop signal, before the commit point undoes the renames and leaves v1 as it was. Nothing is ever undone after the commit point. The hook prints `migration: failed (<reason>)`, and `project directory` is `~/.cockpit` itself. Every `$PROJECT/...` path then resolves to the v1 location, so the session works as before. `memory.sh` reads the v1 files in place as imported text and appends new entries to them. Claude tells the user once, in one sentence, and writes the reason to `proposals.md`.
+- On success the hook prints `state: updated to version 2`, once: a later run that only finishes the cleanup prints nothing. A root file changed after its backup is moved into the backup folder instead of being removed. Claude says so in one sentence and adds a journal line.
 - Railway keeps its folder links in its own config, keyed by absolute path (checked on this machine: `~/.railway/config.json`, `projects` keyed by path). Moved folders lose their link. The migration leaves a `.relink` marker in the project directory, the hook prints `railway links: to refresh`, and `scripts/relink.sh --project <slug>` runs `railway link -p -e -s` with the ids of `state.md`, then removes the marker. Claude runs it before the first Railway command. A failure is the existing repair path.
 
 The prose migration section of `state-schema.md` is replaced by a pointer to the script.
