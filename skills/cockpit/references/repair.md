@@ -14,7 +14,7 @@ Something stopped working, a `health: not checked` line, a missing dependency, o
 | `git -C $PROJECT/repo status` | no clone, or not a repository | `gh repo clone <owner>/<repo> $PROJECT/repo` |
 | Dependencies of the session context | `missing` | `dependencies.md` |
 | The Railway CLI is older than 5.44 (`railway --version`) | commands unknown | install command of `dependencies.md` |
-| Permission pop-ups are back | settings were reset | `sh $SCRIPTS/apply-settings.sh --marketplace cockpit --repo <owner>/cockpit` |
+| Permission pop-ups are back | settings were reset | `sh $SCRIPTS/apply-settings.sh --marketplace cockpit` |
 | A tool's MCP server does not list its tools | sign-in expired | the user types `/mcp`, picks the tool and approves |
 | `state.md` unreadable or half written | onboarding status unknown | rebuild it from what Railway and GitHub answer, keep the other state files, then `onboarding.md` for what is missing |
 

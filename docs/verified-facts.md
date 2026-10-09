@@ -153,6 +153,7 @@ FAIL if <what a wrong or missing response looks like>.
 ### Marketplace and plugin manifests (docs: marketplace-reference, manifest-reference, hooks)
 
 - Plugin at the marketplace repo root: `"source": "."` is documented ("`.` on its own means the root itself"). `"source": "./"` also passes `claude plugin validate` (tested). Both pass; `./plugins/x` style is for subdirectories.
+- `repository` in `.claude-plugin/plugin.json` is written `https://github.com/<owner>/<repo>`: `apply-settings.sh` reads the marketplace source from it. Every plugin in the local plugin cache holds `.claude-plugin/plugin.json` at its root (looked at on 2026-10-09); `marketplace.json` is not copied there for the plugins seen, so the script does not rely on it.
 - `.claude-plugin/marketplace.json` required keys: `name`, `owner{name}`, `plugins[]` with `name` and `source`. Warns when `description` is missing. Entry `name` must equal the `plugin.json` `name`.
 
 ```json
