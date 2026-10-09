@@ -118,7 +118,7 @@ Managed by the scripts and by onboarding, never edited by hand: the directories 
 
 ## Version 1 layout (legacy mode)
 
-Before version 2 everything sat flat in `~/.cockpit/`, for one app. The session check migrates it by itself. While it has not (`active project: legacy` in the session context), `$PROJECT` is `~/.cockpit/` itself and the paths of this file map like this:
+Before version 2 everything sat flat in `~/.cockpit/`, for one app. The session check migrates it by itself. While it has not (legacy mode, defined in `SKILL.md`), `$PROJECT` is `~/.cockpit/` itself and the paths of this file map like this:
 
 | Version 2 | Version 1 |
 |---|---|

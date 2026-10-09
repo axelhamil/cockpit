@@ -4,7 +4,7 @@ Guided first run. Also used to add a usage or a tool later.
 
 ## How to run it
 
-- Resume at `onboarding_step` in `state.md`, which names the next step to run: `profile`, `plan`, `dependencies`, `railway`, `backups`, `settings`, `github`, `tools`, `discovery`, `check`. Create `~/.cockpit/cockpit.md` and `$PROJECT/state.md` from `state-schema.md` as soon as the language is known (in legacy mode only `state.md`, which also holds the user's settings). On a Mac with no saved setup `$PROJECT` is `~/.cockpit/projects/app`.
+- Resume at `onboarding_step` in `state.md`, which names the next step to run: `profile`, `plan`, `dependencies`, `railway`, `backups`, `settings`, `github`, `tools`, `discovery`, `check`. Create `~/.cockpit/cockpit.md` and `$PROJECT/state.md` from `state-schema.md` as soon as the language is known. On a Mac with no saved setup `$PROJECT` is `~/.cockpit/projects/app`.
 - After every step that succeeds, before starting the next one: write what the step learned in its section of `state.md`, mark the step done under `Plan`, and move `onboarding_step` forward. A session can end at any moment.
 - One step at a time: say in one sentence what you are doing, do it, check it, record it. Speak up before a step only when the user has to click something.
 - Ask with AskUserQuestion. Group related questions in one call. Free text only when no choice fits.
@@ -22,7 +22,7 @@ Then, in one or two calls:
 - **Their developer**: is there someone who develops the app, and how to reach them (GitHub, email, nobody for now). Ask for the name and the email or GitHub handle in free text.
 - **Themselves**: their name and work email, in free text. They sign the changes made to the app.
 
-Record the answers under `profile` in `state.md`, except their name and email: those go to the `User` section of `cockpit.md` (in legacy mode, the `User` line of `Profile` in `state.md`: `state-schema.md`, "Version 1 layout").
+Record the answers under `profile` in `state.md`, except their name and email: those go to the `User` section of `cockpit.md`.
 
 **Access, right away.** Two invitations can block the setup later, and they depend on someone else. In the same call as the developer question, ask whether their own account is already a member of the app's project on Railway (or owns it) and, when changes to the app or understanding problems were picked, whether it has write access to the app's repository on GitHub.
 

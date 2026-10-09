@@ -12,7 +12,7 @@ What Claude learns at this client lives in `~/.cockpit/`: about an app in `$PROJ
 | A dashboard, workflow or saved question Claude built and the client validated | `$PROJECT/memory/tools.md` |
 | How the client wants answers, which figures they follow, which offers they declined | `~/.cockpit/memory/preferences.md` |
 
-In legacy mode (`state-schema.md`) the topic files sit directly in `$PROJECT` and `preferences.md` in `~/.cockpit/`. A memory file can start with a `## Imported` section: text carried over untouched from the previous layout. Write new notes in a `## Notes` section above it and leave the imported text as it is, unless the user corrects it.
+A memory file can start with a `## Imported` section: text carried over untouched from the previous layout. Write new notes in a `## Notes` section above it and leave the imported text as it is, unless the user corrects it.
 
 Anything that changed something (deployment, merge, setting, escalation) also gets a dated line in `journal.md`, ending with `undo:` and the way back when there is one (`undo.md`).
 
