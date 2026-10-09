@@ -1,4 +1,4 @@
-# railway-pilot lot 1 Implementation Plan
+# cockpit lot 1 Implementation Plan
 
 > **For agentic workers:** each task below is self-contained. Read the spec and this whole file before starting. Do not commit: the lead commits after replaying the checks.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** POSIX shell, Python 3.9 compatible standard library only (macOS `/usr/bin/python3`), `unittest`, Docker for the Postgres test, GitHub Actions, semantic-release.
 
-**Spec:** `docs/superpowers/specs/2026-10-09-railway-pilot-design.md`
+**Spec:** `docs/superpowers/specs/2026-10-09-cockpit-design.md`
 
 ## Global Constraints
 
@@ -17,7 +17,7 @@
 - Python: standard library only, must run on 3.9.
 - Shell: `#!/bin/sh` unless a bash feature is needed, `set -eu`, must pass shellcheck.
 - Scripts never print a secret. A secret goes to the clipboard (`pbcopy`) or straight into a Railway variable.
-- Client state root: `~/.railway-pilot/`, overridable with `RAILWAY_PILOT_HOME` (used by tests).
+- Client state root: `~/.cockpit/`, overridable with `COCKPIT_HOME` (used by tests).
 - Railway CLI floor: 5.44.
 - Every command, flag and URL written in a skill file comes from `docs/verified-facts.md` (Task 1). Anything not listed there is not written as a fact.
 
@@ -56,7 +56,7 @@ docs/verified-facts.md
 
 ### guard.conf
 
-`$RAILWAY_PILOT_HOME/guard.conf`, `KEY=value` lines, written only by `apply-settings.sh`:
+`$COCKPIT_HOME/guard.conf`, `KEY=value` lines, written only by `apply-settings.sh`:
 
 ```
 SAAS_PROJECT_ID=<uuid>
@@ -111,11 +111,11 @@ Everything else is blocked.
 
 `push` is allowed only as `git push [-u|--set-upstream] origin <branch>` where `<branch>` starts with `pilot/`. Any force flag, `+` refspec, `:` refspec, `--delete`, `--all`, `--mirror`, `--tags`, another remote, or a missing branch blocks.
 
-**Edit, Write, NotebookEdit.** Resolve `file_path` (expand `~`, normalise `..`). Block when the path is under the plugin root, under `~/.claude/plugins/`, equals `guard.conf`, or sits in `$RAILWAY_PILOT_HOME/repo/` and matches `.github/workflows/**`, `.env`, `.env.*`, `railway.json`, `railway.toml`, `railway.ts`, `.railway/**`. Everything else: allow.
+**Edit, Write, NotebookEdit.** Resolve `file_path` (expand `~`, normalise `..`). Block when the path is under the plugin root, under `~/.claude/plugins/`, equals `guard.conf`, or sits in `$COCKPIT_HOME/repo/` and matches `.github/workflows/**`, `.env`, `.env.*`, `railway.json`, `railway.toml`, `railway.ts`, `.railway/**`. Everything else: allow.
 
 ### railway-tools.sh
 
-`railway-tools.sh <railway args...>`. Runs in `$RAILWAY_PILOT_HOME/tools-project/` (created on first use). Allowed first words: `init`, `link`, `status`, `deploy`, `add`, `domain`, `variable set`, `redeploy`, `restart`, `logs`, `service`. Before any command other than `init`, `link` and `status`, it reads the linked project id (`railway status --json`) and refuses with exit 3 when it equals `SAAS_PROJECT_ID` or when `guard.conf` is missing. After `link`, it checks the same and unlinks on a match. The `railway` binary is overridable with `RAILWAY_BIN` for tests.
+`railway-tools.sh <railway args...>`. Runs in `$COCKPIT_HOME/tools-project/` (created on first use). Allowed first words: `init`, `link`, `status`, `deploy`, `add`, `domain`, `variable set`, `redeploy`, `restart`, `logs`, `service`. Before any command other than `init`, `link` and `status`, it reads the linked project id (`railway status --json`) and refuses with exit 3 when it equals `SAAS_PROJECT_ID` or when `guard.conf` is missing. After `link`, it checks the same and unlinks on a match. The `railway` binary is overridable with `RAILWAY_BIN` for tests.
 
 ### create-read-role.sh
 
@@ -125,11 +125,11 @@ Everything else is blocked.
 - Role name: `<tool>_read`.
 - `create`: generates a password (`openssl rand -hex 24`), creates or updates the role (`LOGIN`, `NOINHERIT`, no membership), sets `default_transaction_read_only = on`, `statement_timeout = '30s'`, `idle_in_transaction_session_timeout = '60s'`, grants `CONNECT`, `USAGE` on the schema, `SELECT` on every table of the schema, default privileges for future tables, then revokes `SELECT` on excluded tables. Puts the connection string on the clipboard and prints only host, port, database and user.
 - `revoke`: `DROP OWNED BY`, `DROP ROLE`.
-- SQL runner: `railway ssh -s <postgres service> -- psql ...` in `$RAILWAY_PILOT_HOME/saas-project/`, overridable with `RP_PSQL` (a command reading SQL on stdin) for tests. Clipboard command overridable with `RP_CLIPBOARD`. Public host and port overridable with `RP_PUBLIC_HOST`, `RP_PUBLIC_PORT`.
+- SQL runner: `railway ssh -s <postgres service> -- psql ...` in `$COCKPIT_HOME/saas-project/`, overridable with `RP_PSQL` (a command reading SQL on stdin) for tests. Clipboard command overridable with `RP_CLIPBOARD`. Public host and port overridable with `RP_PUBLIC_HOST`, `RP_PUBLIC_PORT`.
 
 ### apply-settings.sh
 
-`apply-settings.sh --saas-project <id> --deployed-branch <b> [--test-branch <b>] --marketplace <name> --repo <owner/repo>`. Writes `guard.conf`, then merges into `~/.claude/settings.json` (path overridable with `CLAUDE_SETTINGS`): the permission rules of `scripts/permissions.json` (union with existing arrays, no duplicate, nothing removed) and `extraKnownMarketplaces.<name>` with `autoUpdate: true`. Creates the file when absent. Keeps a `settings.json.before-railway-pilot` copy the first time.
+`apply-settings.sh --saas-project <id> --deployed-branch <b> [--test-branch <b>] --marketplace <name> --repo <owner/repo>`. Writes `guard.conf`, then merges into `~/.claude/settings.json` (path overridable with `CLAUDE_SETTINGS`): the permission rules of `scripts/permissions.json` (union with existing arrays, no duplicate, nothing removed) and `extraKnownMarketplaces.<name>` with `autoUpdate: true`. Creates the file when absent. Keeps a `settings.json.before-cockpit` copy the first time.
 
 ### session-check.sh
 
