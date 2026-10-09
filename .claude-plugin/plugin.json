@@ -6,5 +6,12 @@
     "email": "axel.hamilcaro-pro@outlook.fr"
   },
   "repository": "https://github.com/axelhamil/railway-pilot",
-  "keywords": ["railway", "metabase", "n8n", "operations", "non-technical"]
+  "keywords": [
+    "railway",
+    "metabase",
+    "n8n",
+    "operations",
+    "non-technical"
+  ],
+  "version": "1.0.0"
 }
