@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import shutil
@@ -5,15 +6,28 @@ import sys
 import zipfile
 
 
-def asset_url(architecture):
+OFFICIAL_DOWNLOAD = re.compile(r"https://github\.com/cli/cli/releases/download/v[0-9.]+/gh_[0-9.]+_macOS_(arm64|amd64)\.zip")
+
+
+def macos_asset(architecture):
     suffix = "_macOS_{}.zip".format(architecture)
     release = json.load(sys.stdin)
-    urls = [asset["browser_download_url"] for asset in release["assets"] if asset["name"].endswith(suffix)]
+    assets = [asset for asset in release["assets"] if asset["name"].endswith(suffix)]
 
-    if not urls or not urls[0].startswith("https://"):
-        raise ValueError("no macOS asset")
+    if not assets or not OFFICIAL_DOWNLOAD.fullmatch(assets[0]["browser_download_url"]):
+        raise ValueError("no official macOS asset")
 
-    return urls[0]
+    return assets[0]
+
+
+def verify_download(architecture, archive_path):
+    algorithm, _, expected = macos_asset(architecture)["digest"].partition(":")
+
+    with open(archive_path, "rb") as archive:
+        actual = hashlib.sha256(archive.read()).hexdigest()
+
+    if algorithm != "sha256" or actual != expected:
+        raise ValueError("the download does not match the published digest")
 
 
 def extract_binary(archive_path, destination):
@@ -32,7 +46,9 @@ def extract_binary(archive_path, destination):
 def main():
     try:
         if sys.argv[1] == "asset-url":
-            print(asset_url(sys.argv[2]))
+            print(macos_asset(sys.argv[2])["browser_download_url"])
+        elif sys.argv[1] == "verify-download":
+            verify_download(sys.argv[2], sys.argv[3])
         elif sys.argv[1] == "extract-binary":
             extract_binary(sys.argv[2], sys.argv[3])
         else:

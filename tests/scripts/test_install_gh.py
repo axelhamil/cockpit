@@ -1,8 +1,11 @@
+import hashlib
 import json
 import os
 import zipfile
 
 from support import ScriptTestCase
+
+OFFICIAL_DOWNLOADS = "https://github.com/cli/cli/releases/download/v9.9.9/"
 
 FAKE_UNAME = """
 case "$1" in
@@ -42,25 +45,24 @@ class InstallGhTest(ScriptTestCase):
         self.env["COCKPIT_BIN_DIR"] = self.path("ho me", "tools bin")
         self.env["COCKPIT_SHELL_PROFILE"] = self.path("ho me", ".zshrc")
         self.env["FAKE_CURL_LOG"] = self.path("curl.log")
-        self.env["FAKE_RELEASE"] = self.write(
-            "release.json",
-            json.dumps(
-                {
-                    "assets": [
-                        {"name": "gh_9.9.9_linux_arm64.tar.gz", "browser_download_url": "https://example.com/linux.tar.gz"},
-                        {"name": "gh_9.9.9_macOS_amd64.zip", "browser_download_url": "https://example.com/gh_amd64.zip"},
-                        {"name": "gh_9.9.9_macOS_arm64.zip", "browser_download_url": "https://example.com/gh_arm64.zip"},
-                    ]
-                }
-            ),
-        )
         self.env["FAKE_ZIP"] = self.make_zip("gh_9.9.9_macOS_arm64/bin/gh")
+        self.env["FAKE_RELEASE"] = self.release_for(self.env["FAKE_ZIP"])
 
     def make_zip(self, member):
         target = self.path("release.zip")
         with zipfile.ZipFile(target, "w") as archive:
             archive.writestr(member, "#!/bin/sh\necho 'gh version 9.9.9 (fake)'\n")
         return target
+
+    def release_for(self, archive, downloads=OFFICIAL_DOWNLOADS, digest=None):
+        with open(archive, "rb") as handle:
+            published = digest or "sha256:" + hashlib.sha256(handle.read()).hexdigest()
+
+        assets = [
+            {"name": name, "browser_download_url": downloads + name, "digest": published}
+            for name in ("gh_9.9.9_linux_arm64.tar.gz", "gh_9.9.9_macOS_amd64.zip", "gh_9.9.9_macOS_arm64.zip")
+        ]
+        return self.write("release.json", json.dumps({"assets": assets}))
 
     def install(self):
         return self.run_script("install-gh.sh")
@@ -77,7 +79,7 @@ class InstallGhTest(ScriptTestCase):
         self.assertIn("gh version 9.9.9", first.stdout)
         self.assertTrue(os.access(self.path("ho me", "tools bin", "gh"), os.X_OK))
         self.assertEqual(self.read(os.path.join("ho me", ".zshrc")).count("tools bin"), 1)
-        self.assertIn("https://example.com/gh_arm64.zip", self.read("curl.log"))
+        self.assertIn(OFFICIAL_DOWNLOADS + "gh_9.9.9_macOS_arm64.zip", self.read("curl.log"))
         self.assertEqual(self.home_content(), [".zshrc", "tools bin"])
 
     def test_given_an_intel_mac_then_the_intel_archive_is_downloaded(self):
@@ -86,7 +88,7 @@ class InstallGhTest(ScriptTestCase):
         result = self.install()
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("https://example.com/gh_amd64.zip", self.read("curl.log"))
+        self.assertIn(OFFICIAL_DOWNLOADS + "gh_9.9.9_macOS_amd64.zip", self.read("curl.log"))
 
     def test_given_another_system_than_macos_then_nothing_is_downloaded_or_written(self):
         self.env["FAKE_SYSTEM"] = "Linux"
@@ -112,7 +114,6 @@ class InstallGhTest(ScriptTestCase):
         cases = (
             ("release", '{"message": "API rate limit exceeded"}'),
             ("release", "<html>busy</html>"),
-            ("release", '{"assets": [{"name": "gh_9.9.9_macOS_arm64.zip", "browser_download_url": "http://insecure.example.com/gh.zip"}]}'),
             ("zip", "other/bin/gh"),
             ("zip", "gh_9.9.9_macOS_arm64/gh"),
             ("zip", None),
@@ -125,10 +126,32 @@ class InstallGhTest(ScriptTestCase):
                     env["FAKE_RELEASE"] = self.write("bad-release.json", content)
                 elif content is None:
                     env["FAKE_ZIP"] = self.write("not-a-zip.zip", "plain text")
+                    env["FAKE_RELEASE"] = self.release_for(env["FAKE_ZIP"])
                 else:
                     env["FAKE_ZIP"] = self.make_zip(content)
+                    env["FAKE_RELEASE"] = self.release_for(env["FAKE_ZIP"])
 
                 result = self.run_script("install-gh.sh", env=env)
+
+                self.assertEqual(result.returncode, 1)
+                self.assertTrue(result.stderr.strip())
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertEqual(self.home_content(), [])
+
+    def test_given_a_download_that_is_not_the_official_one_then_nothing_is_installed(self):
+        archive = self.env["FAKE_ZIP"]
+        cases = (
+            {"downloads": "https://example.com/cli/cli/releases/download/v9.9.9/"},
+            {"downloads": "http://github.com/cli/cli/releases/download/v9.9.9/"},
+            {"downloads": "https://github.com/someone/cli/releases/download/v9.9.9/"},
+            {"downloads": "https://github.com/cli/cli/releases/download/../../../../someone/cli/raw/main/"},
+            {"digest": "sha256:" + "0" * 64},
+            {"digest": "md5:" + "0" * 32},
+        )
+
+        for case in cases:
+            with self.subTest(case=case):
+                result = self.run_script("install-gh.sh", env={"FAKE_RELEASE": self.release_for(archive, **case)})
 
                 self.assertEqual(result.returncode, 1)
                 self.assertTrue(result.stderr.strip())

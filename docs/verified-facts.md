@@ -232,6 +232,7 @@ FAIL if <what a wrong or missing response looks like>.
 - `gh api <endpoint> [-X|--method M] [-f|--raw-field k=v] [-F|--field k=v] [--input <file|->] [-H|--header] [--hostname] [-i|--include] [-q|--jq] [--paginate] [--slurp] [-p|--preview] [--cache] [--silent] [-t|--template] [--verbose]`.
 - `gh issue view <number> --json comments` and `gh pr view <number> --json comments,reviews` (run on 2026-10-09 on a public repository): each comment and each review holds `author.login`, `authorAssociation` (`NONE` for someone outside the repository) and `body`.
 - Default method is GET, but POST as soon as any `-f`, `-F` or `--input` parameter is added. `--method GET` keeps fields as a query string. `graphql` is an endpoint (always POST in practice with `-f query=...`).
+- `gh api repos/cli/cli/releases/latest` (run on 2026-10-09, with gh 2.101.0, on the release v2.102.0 of gh): each asset holds `name`, `browser_download_url` under `https://github.com/cli/cli/releases/download/` and `digest` written `sha256:<hex>`.
 
 ## State layout v2 (checked 2026-10-09 by a real run)
 
