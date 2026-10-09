@@ -23,7 +23,7 @@ Claude Desktop reads `PATH` from `~/.zshrc` when the app starts. Right after an 
 
 ### GitHub CLI
 
-- Needed: when the profile includes changes to the app, understanding problems, or a developer reachable on GitHub.
+- Needed: when the profile includes changes to the app, understanding problems, or a developer.
 - Check: `gh --version`
 - Install: `sh $SCRIPTS/install-gh.sh`. No password. The binary lands in `~/.local/bin`.
 - Sign in: `sh $SCRIPTS/github-login.sh`, in the browser, with the user's own GitHub account. Details in `onboarding.md`, GitHub step. Verify with `gh auth status`.
