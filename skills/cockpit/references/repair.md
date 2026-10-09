@@ -9,6 +9,7 @@ Something stopped working, a `health: not checked` line, a missing dependency, o
 | `railway whoami` | error or "Unauthorized" | `railway login` (tell the user first: a browser tab opens, they approve), in the background |
 | `railway status --json` in `$PROJECT/saas-project/` | no linked project | `railway link -p <project id> -e <environment>` with the values of `state.md` |
 | Same in `$PROJECT/tools-project/`, when a tool is recorded as `project tools` | no linked project | same, with the tools project |
+| `railway links: to refresh` in the session context | the folders moved with the saved setup | `sh $SCRIPTS/relink.sh` |
 | `gh auth status --hostname github.com`, when GitHub is in the plan | not logged in | `onboarding.md`, GitHub step |
 | `git -C $PROJECT/repo status` | no clone, or not a repository | `gh repo clone <owner>/<repo> $PROJECT/repo` |
 | Dependencies of the session context | `missing` | `dependencies.md` |
@@ -28,7 +29,7 @@ The user wants to stop using cockpit on this Mac. Say first, in two sentences, w
 
 One AskUserQuestion (this is not reversible), two questions: keep a copy of the memory on the Desktop or not, and leave the tools running on Railway or delete them too (their content is lost). Tools to delete: `tools.md`, removing a tool, before anything else. Then:
 
-1. Copy asked: `cp -R ~/.cockpit ~/Desktop/cockpit-memory && rm -rf ~/Desktop/cockpit-memory/secrets ~/Desktop/cockpit-memory/repo`.
+1. Copy asked: `cp -R ~/.cockpit ~/Desktop/cockpit-memory && find ~/Desktop/cockpit-memory \( -name secrets -o -name repo \) -type d -prune -exec rm -rf {} +`.
 2. `sh $SCRIPTS/apply-settings.sh --remove --marketplace cockpit`.
 3. `claude mcp remove <name> --scope user` for each tool driven by MCP in `state.md`.
 4. `gh auth logout --hostname github.com` and `railway logout`.

@@ -1,16 +1,18 @@
 # Memory
 
-What Claude learns at this client lives in `~/.cockpit/`. The plugin directory is never written to.
+What Claude learns at this client lives in `~/.cockpit/`: about an app in `$PROJECT/memory/`, about the user in `~/.cockpit/memory/`. The plugin directory is never written to.
 
 ## What goes where
 
 | What was learned | File |
 |---|---|
-| A business term, a status, a rule | `domain.md` |
-| What a table is for, a trap, a sensitive table | `schema.md` |
-| Where code lives, a convention, a file that always needs a developer | `codebase.md` |
-| A dashboard, workflow or saved question Claude built and the client validated | `tools.md` |
-| How the client wants answers, which figures they follow, which offers they declined | `preferences.md` |
+| A business term, a status, a rule | `$PROJECT/memory/domain.md` |
+| What a table is for, a trap, a sensitive table | `$PROJECT/memory/schema.md` |
+| Where code lives, a convention, a file that always needs a developer | `$PROJECT/memory/codebase.md` |
+| A dashboard, workflow or saved question Claude built and the client validated | `$PROJECT/memory/tools.md` |
+| How the client wants answers, which figures they follow, which offers they declined | `~/.cockpit/memory/preferences.md` |
+
+In legacy mode (`state-schema.md`) the topic files sit directly in `$PROJECT` and `preferences.md` in `~/.cockpit/`. A memory file can start with a `## Imported` section: text carried over untouched from the previous layout. Write new notes in a `## Notes` section above it and leave the imported text as it is, unless the user corrects it.
 
 Anything that changed something (deployment, merge, setting, escalation) also gets a dated line in `journal.md`, ending with `undo:` and the way back when there is one (`undo.md`).
 

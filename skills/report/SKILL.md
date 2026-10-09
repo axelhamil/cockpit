@@ -5,6 +5,8 @@ description: Use when the user wants to send feedback, the journal or improvemen
 
 # Report
 
+Read `${CLAUDE_PLUGIN_ROOT}/skills/cockpit/SKILL.md` first.
+
 Sends the maintainer what this installation learned that could improve the plugin for everyone.
 
 1. Read `$PROJECT/journal.md` and `~/.cockpit/proposals.md`.
@@ -15,6 +17,6 @@ Sends the maintainer what this installation learned that could improve the plugi
 3. Remove every name, email, phone number, domain name, project name, repository name and figure that identifies the client or their users. Replace with a role ("the client", "a tool", "the SaaS repo").
 4. Show the message to the user in their language with a one-sentence summary, and ask for confirmation with AskUserQuestion.
 5. On confirmation, read the maintainer email from `author.email` in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`, write the message to `$PROJECT/report.txt`, and open a mail draft: `open "mailto:<email>?subject=cockpit%20report"`. Copy the message to the clipboard with `pbcopy < $PROJECT/report.txt` and tell the user to paste it into the draft and send.
-6. Add a dated line to `journal.md`.
+6. Add a dated line to `$PROJECT/journal.md`.
 
 Nothing to report is a valid result. Say so and stop.
