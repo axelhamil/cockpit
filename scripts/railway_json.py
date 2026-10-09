@@ -3,11 +3,6 @@ import sys
 from urllib.parse import urlsplit
 
 
-def project_id(payload):
-    project = payload["project"] if isinstance(payload.get("project"), dict) else payload
-    return str(project["id"]).strip().lower()
-
-
 def public_endpoint(payload):
     if isinstance(payload, list):
         payload = {item.get("name"): item.get("value") for item in payload if isinstance(item, dict)}
@@ -20,7 +15,7 @@ def public_endpoint(payload):
     return "{} {}".format(url.hostname, url.port)
 
 
-READERS = {"project-id": project_id, "public-endpoint": public_endpoint}
+READERS = {"public-endpoint": public_endpoint}
 
 
 def main():

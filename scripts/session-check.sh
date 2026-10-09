@@ -63,7 +63,7 @@ known_language() {
 
 known_step() {
   case $1 in
-    profile | plan | dependencies | railway | backups | protection | github | tools | discovery | check) printf '%s' "$1" ;;
+    profile | plan | dependencies | railway | backups | settings | github | tools | discovery | check) printf '%s' "$1" ;;
     *) printf 'unknown' ;;
   esac
 }

@@ -9,9 +9,6 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 SCRIPTS_DIR = os.path.join(REPO_ROOT, "scripts")
 SHELL = shutil.which("sh")
 
-SAAS_PROJECT_ID = "11111111-2222-3333-4444-555555555555"
-TOOLS_PROJECT_ID = "99999999-8888-7777-6666-555555555555"
-
 FAKE_PSQL = """
 import hashlib
 import os
@@ -71,12 +68,6 @@ class ScriptTestCase(unittest.TestCase):
 
     def exists(self, relative_path):
         return os.path.exists(self.path(relative_path))
-
-    def write_guard_conf(self, saas_project_id=SAAS_PROJECT_ID):
-        self.write(
-            "pilot-home/guard.conf",
-            "SAAS_PROJECT_ID={}\nDEPLOYED_BRANCH=main\nTEST_BRANCH=\n".format(saas_project_id),
-        )
 
     def install_command(self, name, body, directory="bin"):
         target = self.write(os.path.join(directory, name), "#!/bin/sh\n" + body)

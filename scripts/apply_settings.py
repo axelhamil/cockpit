@@ -10,10 +10,6 @@ class SettingsError(Exception):
     pass
 
 
-class GuardError(Exception):
-    pass
-
-
 def marketplace_entry(repository):
     return {"source": {"source": "github", "repo": repository}, "autoUpdate": True}
 
@@ -75,20 +71,6 @@ def merge_marketplace(settings, name, repository):
     marketplaces[name] = {**kept, **marketplace_entry(repository)}
 
 
-def recorded_saas_project(guard_conf):
-    if not os.path.exists(guard_conf):
-        return ""
-
-    with open(guard_conf, encoding="utf-8", errors="replace") as handle:
-        for line in handle:
-            key, _, value = line.strip().partition("=")
-
-            if key == "SAAS_PROJECT_ID":
-                return value.strip().lower()
-
-    return ""
-
-
 def stage(path, text):
     directory = os.path.dirname(path)
     os.makedirs(directory, exist_ok=True)
@@ -109,14 +91,9 @@ def discard(staged):
             os.unlink(temporary)
 
 
-def apply(guard_conf, settings_arg, permissions_path, saas_project, deployed_branch, test_branch, marketplace, repository):
+def apply(settings_arg, permissions_path, marketplace, repository):
     settings_path = os.path.realpath(settings_arg)
     backup_path = settings_arg + ".before-railway-pilot"
-    first_run = not os.path.exists(guard_conf)
-    recorded = recorded_saas_project(guard_conf)
-
-    if recorded and recorded != saas_project.lower():
-        raise GuardError()
 
     with open(permissions_path, encoding="utf-8") as handle:
         shipped = json.load(handle)["permissions"]
@@ -126,25 +103,16 @@ def apply(guard_conf, settings_arg, permissions_path, saas_project, deployed_bra
     added = merge_permissions(settings, shipped)
     merge_marketplace(settings, marketplace, repository)
 
-    guard_text = "SAAS_PROJECT_ID={}\nDEPLOYED_BRANCH={}\nTEST_BRANCH={}\n".format(saas_project.lower(), deployed_branch, test_branch)
-    settings_changed = settings != original or not os.path.exists(settings_path)
-    staged = []
+    if settings == original and os.path.exists(settings_path):
+        return added
+
+    staged = [stage(settings_path, json.dumps(settings, indent=2, ensure_ascii=False) + "\n")]
 
     try:
-        staged_guard = stage(guard_conf, guard_text)
-        staged.append(staged_guard)
-
-        if settings_changed:
-            staged_settings = stage(settings_path, json.dumps(settings, indent=2, ensure_ascii=False) + "\n")
-            staged.append(staged_settings)
-
-        if first_run and os.path.exists(settings_path) and not os.path.exists(backup_path):
+        if os.path.exists(settings_path) and not os.path.exists(backup_path):
             shutil.copy2(settings_path, backup_path)
 
-        os.replace(staged_guard, guard_conf)
-
-        if settings_changed:
-            os.replace(staged_settings, settings_path)
+        os.replace(staged[0], settings_path)
     finally:
         discard(staged)
 
@@ -152,17 +120,10 @@ def apply(guard_conf, settings_arg, permissions_path, saas_project, deployed_bra
 
 
 def main():
-    arguments = sys.argv[1:9]
-    guard_conf, settings_arg, marketplace = arguments[0], arguments[1], arguments[6]
+    settings_arg, permissions_path, marketplace, repository = sys.argv[1:5]
 
     try:
-        added = apply(*arguments)
-    except GuardError:
-        sys.stderr.write(
-            "The safety settings already protect another SaaS project and this script never replaces it. "
-            "Only the plugin maintainer can reset it, by deleting {} by hand.\n".format(guard_conf)
-        )
-        sys.exit(1)
+        added = apply(settings_arg, permissions_path, marketplace, repository)
     except SettingsError as error:
         sys.stderr.write(
             "The Claude settings file {} {}. Nothing was changed. A developer has to repair that file, then this step can run again.\n".format(
@@ -178,7 +139,7 @@ def main():
         )
         sys.exit(1)
 
-    print("Safety settings applied: {} permission entries added, automatic updates on for {}.".format(added, marketplace))
+    print("Settings applied: {} permission entries added, automatic updates on for {}.".format(added, marketplace))
 
 
 main()

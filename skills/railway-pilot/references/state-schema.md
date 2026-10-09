@@ -20,7 +20,7 @@ dependencies: git, railway, gh
 
 - `language`: language code of the user.
 - `onboarding`: `in-progress` or `complete`.
-- `onboarding_step`: the next step to run, not the last one finished, one of `profile`, `plan`, `dependencies`, `railway`, `backups`, `protection`, `github`, `tools`, `discovery`, `check`.
+- `onboarding_step`: the next step to run, not the last one finished, one of `profile`, `plan`, `dependencies`, `railway`, `backups`, `settings`, `github`, `tools`, `discovery`, `check`.
 - `dependencies`: command names of the plan, comma separated: `git`, `railway`, `gh`, `node`.
 
 The body below the header uses these sections, in this order. Leave a section empty until it is known.
@@ -47,7 +47,7 @@ The body below the header uses these sections, in this order. Leave a section em
 - Backups: schedule <daily, weekly>, first backup <date>
 
 ## Code
-- Merge policy: claude-judges | developer-always
+- Merge policy: ask-me | developer-reviews
 - Clone: ~/.railway-pilot/repo
 
 ## Tools project
@@ -72,7 +72,7 @@ The body below the header uses these sections, in this order. Leave a section em
 | `journal.md` | One dated line per change, merge, role, escalation, memory write | user's |
 | `proposals.md` | Changes wanted in the plugin: date, what happened, what should change, why | English |
 
-Managed by the scripts and by onboarding, never edited by hand: the directories `saas-project/` (linked to the SaaS project, for reading), `tools-project/` (linked to the tools project), `repo/` (clone of the app), `secrets/` (API keys of tools, mode 600), and the files `guard.conf` and `report.txt`.
+Managed by the scripts and by onboarding, never edited by hand: the directories `saas-project/` (linked to the SaaS project, for reading), `tools-project/` (linked to the tools project), `repo/` (clone of the app), `secrets/` (API keys of tools, mode 600), and the file `report.txt`.
 
 ## Migration
 

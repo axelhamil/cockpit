@@ -22,7 +22,7 @@ dependencies: git, railway, gh
 - Test environment: none
 
 ## Code
-- Merge policy: claude-judges
+- Merge policy: ask-me
 - Clone: ~/.railway-pilot/repo
 
 ## Tools

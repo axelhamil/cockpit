@@ -1,4 +1,4 @@
 schema_version: "1.1"
-name: memory-waits-for-confirmation
+name: rollback-request-is-carried-out
 context:
   scaffold_script: fixture.sh
