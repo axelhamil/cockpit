@@ -31,5 +31,5 @@ dependencies: git, railway, gh
 - Project: acme tools (22222222-2222-2222-2222-222222222222)
 
 ## Tools
-- metabase: template metabase, services metabase and metabase-db, URL https://metabase.example.com, driven by mcp, app data connected
+- metabase: project tools, template metabase, services metabase and metabase-db, URL https://metabase.example.com, driven by mcp, app data connected
 STATE

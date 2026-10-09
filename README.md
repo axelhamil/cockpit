@@ -2,7 +2,7 @@
 
 A Claude Code plugin for non-technical teams whose SaaS runs on Railway. They talk to Claude, and Claude:
 
-- deploys a tool from the Railway template marketplace (Metabase, n8n, Uptime Kuma), connects it to their data, and fills it with a standard setup fitted to their app: steering dashboards, linked sheets per customer, alerts, monitors;
+- deploys a tool from the Railway template marketplace (Metabase, n8n, Uptime Kuma), in a separate project by default or inside the app's project on request, connects it to their data, and fills it with a standard setup fitted to their app: steering dashboards, linked sheets per customer, alerts, monitors;
 - makes small changes to the app through a pull request;
 - reports health, logs, costs and backups in one screen, and says so at the start of a session when a service is down;
 - shows results in the Browser pane of Claude Desktop instead of describing them, and does the clicking in admin screens;
