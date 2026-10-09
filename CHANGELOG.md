@@ -1,3 +1,15 @@
+# [2.0.0](https://github.com/axelhamil/cockpit/compare/v1.6.0...v2.0.0) (2026-10-09)
+
+
+* feat!: rename the plugin to cockpit ([2becf63](https://github.com/axelhamil/cockpit/commit/2becf63b8fa1273afffe6e6f7cb05eec5463c98a))
+
+
+### BREAKING CHANGES
+
+* an install of railway-pilot is not updated. Remove
+it and install cockpit, as the README section "Coming from
+railway-pilot" describes, to keep the saved setup and memory.
+
 # [1.6.0](https://github.com/axelhamil/railway-pilot/compare/v1.5.0...v1.6.0) (2026-10-09)
 
 
