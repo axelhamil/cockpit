@@ -12,7 +12,7 @@ dependencies: git, railway, gh
 
 ## Profile
 - Usages: tools, app changes, health, diagnosis
-- User: Sam Carter, sam@example.com
+- User: Alex Morgan, alex@example.com
 - Developer: Sam, @sam-dev, channel: github
 
 ## SaaS project
@@ -26,6 +26,9 @@ dependencies: git, railway, gh
 - Merge policy: ask-me
 - Clone: ~/.railway-pilot/repo
 
+## Tools project
+- Project: acme tools (22222222-2222-2222-2222-222222222222)
+
 ## Tools
-- metabase: template metabase, URL https://metabase.example.com, driven by mcp, app data connected
+- metabase: template metabase, services metabase and metabase-db, URL https://metabase.example.com, driven by mcp, app data connected
 STATE

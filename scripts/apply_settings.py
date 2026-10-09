@@ -71,6 +71,52 @@ def merge_marketplace(settings, name, repository):
     marketplaces[name] = {**kept, **marketplace_entry(repository)}
 
 
+def remove_permissions(settings, shipped, before):
+    permissions = settings.get("permissions")
+    owned = before.get("permissions")
+
+    if not isinstance(permissions, dict):
+        return 0
+
+    if not isinstance(owned, dict):
+        owned = {}
+
+    removed = 0
+
+    for kind, shipped_values in shipped.items():
+        current = permissions.get(kind)
+        already_there = owned.get(kind)
+
+        if not isinstance(current, list):
+            continue
+
+        if not isinstance(already_there, list):
+            already_there = []
+
+        kept = [value for value in current if value not in shipped_values or value in already_there]
+        removed += len(current) - len(kept)
+        permissions[kind] = kept
+
+        if not kept and kind not in owned:
+            del permissions[kind]
+
+    return removed
+
+
+def remove_marketplace(settings, name, before):
+    marketplaces = settings.get("extraKnownMarketplaces")
+    owned = before.get("extraKnownMarketplaces")
+
+    if not isinstance(marketplaces, dict):
+        return
+
+    if isinstance(owned, dict) and name in owned:
+        marketplaces[name] = owned[name]
+        return
+
+    marketplaces.pop(name, None)
+
+
 def stage(path, text):
     directory = os.path.dirname(path)
     os.makedirs(directory, exist_ok=True)
@@ -91,7 +137,18 @@ def discard(staged):
             os.unlink(temporary)
 
 
-def apply(settings_arg, permissions_path, marketplace, repository):
+def drop_emptied(settings, before):
+    for key in ("permissions", "extraKnownMarketplaces"):
+        if settings.get(key) == {} and key not in before:
+            del settings[key]
+
+
+def forget_backup(mode, backup_path):
+    if mode == "remove" and os.path.exists(backup_path):
+        os.unlink(backup_path)
+
+
+def apply(mode, settings_arg, permissions_path, marketplace, repository):
     settings_path = os.path.realpath(settings_arg)
     backup_path = settings_arg + ".before-railway-pilot"
 
@@ -100,30 +157,39 @@ def apply(settings_arg, permissions_path, marketplace, repository):
 
     original = load_settings(settings_path)
     settings = copy.deepcopy(original)
-    added = merge_permissions(settings, shipped)
-    merge_marketplace(settings, marketplace, repository)
 
-    if settings == original and os.path.exists(settings_path):
-        return added
+    if mode == "remove":
+        before = load_settings(backup_path)
+        changed = remove_permissions(settings, shipped, before)
+        remove_marketplace(settings, marketplace, before)
+        drop_emptied(settings, before)
+    else:
+        changed = merge_permissions(settings, shipped)
+        merge_marketplace(settings, marketplace, repository)
+
+    if settings == original and (mode == "remove" or os.path.exists(settings_path)):
+        forget_backup(mode, backup_path)
+        return changed
 
     staged = [stage(settings_path, json.dumps(settings, indent=2, ensure_ascii=False) + "\n")]
 
     try:
-        if os.path.exists(settings_path) and not os.path.exists(backup_path):
+        if mode != "remove" and os.path.exists(settings_path) and not os.path.exists(backup_path):
             shutil.copy2(settings_path, backup_path)
 
         os.replace(staged[0], settings_path)
     finally:
         discard(staged)
 
-    return added
+    forget_backup(mode, backup_path)
+    return changed
 
 
 def main():
-    settings_arg, permissions_path, marketplace, repository = sys.argv[1:5]
+    mode, settings_arg, permissions_path, marketplace, repository = sys.argv[1:6]
 
     try:
-        added = apply(settings_arg, permissions_path, marketplace, repository)
+        changed = apply(mode, settings_arg, permissions_path, marketplace, repository)
     except SettingsError as error:
         sys.stderr.write(
             "The Claude settings file {} {}. Nothing was changed. A developer has to repair that file, then this step can run again.\n".format(
@@ -139,7 +205,11 @@ def main():
         )
         sys.exit(1)
 
-    print("Settings applied: {} permission entries added, automatic updates on for {}.".format(added, marketplace))
+    if mode == "remove":
+        print("Settings cleaned: {} permission entries removed, {} is no longer a known marketplace.".format(changed, marketplace))
+        return
+
+    print("Settings applied: {} permission entries added, automatic updates on for {}.".format(changed, marketplace))
 
 
 main()

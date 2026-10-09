@@ -60,14 +60,22 @@ railway-pilot/
     references/escalation.md
     references/memory.md
     references/state-schema.md
+    references/standards.md     what to put in each kind of tool, fitted to the app
+    references/status.md
+    references/undo.md
+    references/repair.md
   skills/onboard/SKILL.md       rerun or extend onboarding
   skills/review-session/SKILL.md
   skills/report/SKILL.md        package journal and proposals for the maintainer
+  skills/status/SKILL.md        how the app is doing, in one screen
+  skills/undo/SKILL.md          go back on a change
+  skills/repair/SKILL.md        fix the setup, or remove railway-pilot
   hooks/hooks.json
   scripts/
     session-check.sh            SessionStart: state and dependency summary
+    health-check.sh             deployment check for the session context
     database-access.sh          database address for a tool, password on the clipboard
-    apply-settings.sh           permission rules, auto-update
+    apply-settings.sh           permission rules, auto-update, --remove
     permissions.json            permission rules merged into the user settings
     install-gh.sh               GitHub CLI without sudo
     github-login.sh             GitHub sign-in in the browser
@@ -217,6 +225,15 @@ Flow:
 - `railway metrics` (`-s`, `--all`, `--since`, `--http`, `--json`), `railway logs --json` with `--since` and `--filter`, `railway usage` for costs.
 - Backups: status in one sentence. A restore is run only after stating what it overwrites and getting an explicit confirmation.
 - Diagnosis crosses logs, code and, when a tool is connected, data.
+
+### Everyday comfort (added 2026-10-09)
+
+- **Alert at session start**: `health-check.sh`, called by the SessionStart hook once onboarding is complete, runs `railway status --json` with a 6 second cap and adds `health:` lines to the context. Claude speaks only on a `PROBLEM` line. Service names are reduced to plain characters before they reach the context.
+- **Status**: `references/status.md`, one screen (verdict, app, errors, cost, backups, tools, waiting changes).
+- **Undo**: `references/undo.md`. Every journal line for a change ends with `undo:` and the way back. The Railway CLI cannot roll back to an older deployment, so that path is a pull request revert or the dashboard in the Browser pane.
+- **Browser pane**: results are shown, pages are checked and admin screens are driven in the Browser pane of Claude Desktop. Passwords are typed by the user only.
+- **Standard setups**: `references/standards.md`. A shape per kind of tool (steering dashboards, entity sheets linked by click, automations, monitors), fitted to the app from its schema through five roles: account, member, object, activity, money.
+- **Repair and removal**: `references/repair.md`, with `apply-settings.sh --remove`.
 
 ## 13. Hand-off to a developer
 

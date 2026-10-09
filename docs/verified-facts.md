@@ -34,6 +34,7 @@ Checked on 2026-10-09 on Linux. Every line comes from a real `--help` output, a 
 - `railway service delete [-s] [-e] [-p] [-y] [--json] [--2fa-code]`.
 - `railway service source connect --repo owner/repo [--branch main] --service <svc>` or `--image <img>`; `railway service source disconnect --service <svc>`.
 - `railway service files list|download|upload|delete|rename|browse`.
+- `railway deployment redeploy [-s] [-e] [-p] [-y] [--json] [--from-source]` takes no deployment id: it redeploys the latest deployment only. No CLI command rolls back to an older deployment (5.64.1). `railway open [-p|--print]` opens or prints the project dashboard URL. `railway logout` takes no option.
 - `railway deployment list [-s] [-e] [-p <PROJECT>] [--limit N (default 20)] [--json]`; `railway deployment up|redeploy`.
 
 ### Domains
@@ -249,3 +250,7 @@ FAIL if <what a wrong or missing response looks like>.
 - `source: "."` and `"./"` resolved on a real `marketplace add owner/repo` install from GitHub (only local `validate` was run).
 - `gh auth login --web --clipboard` started from the Code tab without a terminal (code copied, sign-in completes, command returns), then `gh auth setup-git` and `git push` over HTTPS.
 - Railway PR previews, test environment detection by branch, Metabase and n8n instance MCP availability, Gatekeeper behaviour for the `gh` zip binary, `xcode-select --install` polling.
+- Browser pane of Claude Desktop (docs `code.claude.com/docs/en/desktop`: opens external sites with a per-site approval, own profile without the user's logins, toggle "Browser tools" in Settings, Claude Code): tool names, default state of the toggle, behaviour in a session whose folder is not a web project, and whether `open <url>` from Bash lands in the pane.
+- `claude mcp remove <name> [-s scope]`, `claude plugin uninstall <plugin>`, `claude plugin marketplace remove <name>`: help read on 2.1.295, not run from inside a plugin session.
+- Dashboard Rollback of an older deployment driven through the Browser pane; Metabase click behaviour and models created through its MCP server.
+- `gh auth status --hostname github.com`, `gh auth logout --hostname github.com`, `gh repo clone <owner>/<repo> <dir>`, `gh pr close <number> --delete-branch`: used in the procedures, not run.

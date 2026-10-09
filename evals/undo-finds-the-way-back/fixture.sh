@@ -32,3 +32,7 @@ dependencies: git, railway, gh
 ## Tools
 - metabase: template metabase, services metabase and metabase-db, URL https://metabase.example.com, driven by mcp, app data connected
 STATE
+cat > "$HOME/.railway-pilot/journal.md" <<JOURNAL
+- 2026-10-07: deployed metabase in the tools project, undo: delete services metabase and metabase-db (content lost)
+- 2026-10-08: changed the signup button label to "Start free" (pull request 42), undo: gh pr revert 42
+JOURNAL
