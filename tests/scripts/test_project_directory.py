@@ -64,3 +64,14 @@ class ProjectDirectoryTest(ScriptTestCase):
         self.write("cockpit-home/projects/no-state/notes.md", "")
 
         self.assertEqual(self.directory("--list").stdout, "acme-studio\n")
+
+    def test_given_a_call_that_is_not_understood_then_the_usage_is_printed_with_status_2(self):
+        self.write_v2_state("acme-studio")
+
+        for arguments in (("--project",), ("--unknown",), ("acme-studio",)):
+            with self.subTest(arguments=arguments):
+                result = self.directory(*arguments)
+
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, "")
+                self.assertIn("Usage: project-directory.sh", result.stderr)

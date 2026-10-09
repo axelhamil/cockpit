@@ -44,14 +44,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     --project)
       if [ "$#" -lt 2 ]; then
-        fail "$usage" 64
+        fail "$usage" 2
       fi
 
       project=$2
       shift 2
       ;;
     *)
-      fail "$usage" 64
+      fail "$usage" 2
       ;;
   esac
 done
