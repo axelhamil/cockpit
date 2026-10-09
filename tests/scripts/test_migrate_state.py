@@ -10,6 +10,7 @@ from support import SCRIPTS_DIR, SHELL, ScriptTestCase
 
 PROJECT = "projects/acme-studio"
 UPDATED = "state: updated to version 2\n"
+SET_ASIDE = "state: version 1 files set aside\n"
 NEWER = "state: written by a newer cockpit, left untouched\n"
 BUSY = "migration: failed (another session is migrating the saved setup)\n"
 UNTRUSTED = "migration: failed (the list left by an interrupted update cannot be trusted)\n"
@@ -353,7 +354,7 @@ class MigrateStateTest(ScriptTestCase):
                 self.assertEqual(os.listdir(os.path.join(home, "projects")), ["acme-studio"])
                 self.assertEqual(without_backups(self.snapshot(home)), expected)
 
-    def test_given_a_root_file_changed_after_the_commit_then_it_ends_in_the_backup_without_a_word(self):
+    def test_given_a_root_file_changed_after_the_commit_then_it_is_set_aside_in_the_backup(self):
         self.build_state_v1()
         self.migrate(COCKPIT_MIGRATION_KILL_AT="committed")
         with open(self.path("cockpit-home/state.md"), "a", encoding="utf-8") as handle:
@@ -364,11 +365,37 @@ class MigrateStateTest(ScriptTestCase):
         after = self.snapshot()
         later = self.migrate()
 
-        self.assertEqual((resumed.returncode, resumed.stdout), (0, ""))
+        self.assertEqual((resumed.returncode, resumed.stdout), (0, SET_ASIDE))
         self.assertEqual(files_of(without_backups(after)), MIGRATED_FILES)
         self.assertEqual(after["backups/{}/state.md{}".format(self.backup_directories()[0], CHANGED)], changed)
         self.assertEqual((later.returncode, later.stdout), (0, ""))
         self.assertEqual(self.snapshot(), after)
+
+    def test_given_version_1_files_written_after_the_move_then_they_are_set_aside_and_said_once(self):
+        self.build_state_v1()
+        self.migrate()
+        migrated = self.snapshot()
+        backup = "backups/" + self.backup_directories()[0]
+        self.write("cockpit-home/journal.md", "- 2026-10-09: written by a window opened before the update\n")
+        self.write("cockpit-home/domain.md", "- Churn: an account with no paid invoice for 60 days.\n")
+        written = self.snapshot()
+
+        result = self.migrate()
+        after = self.snapshot()
+        rerun = self.migrate()
+
+        self.assertEqual((result.returncode, result.stdout), (0, SET_ASIDE))
+        self.assertEqual(after.pop(backup + "/journal.md" + CHANGED), written["journal.md"])
+        self.assertEqual(after.pop(backup + "/domain.md" + CHANGED), written["domain.md"])
+        self.assertEqual(after, migrated)
+        self.assertEqual((rerun.returncode, rerun.stdout), (0, ""))
+
+        self.write("cockpit-home/journal.md", "- 2026-10-10: written again by the same window\n")
+        again = self.snapshot()["journal.md"]
+
+        self.assertEqual(self.migrate().stdout, SET_ASIDE)
+        self.assertEqual(self.snapshot()[backup + "/journal.md" + CHANGED + "-2"], again)
+        self.assertEqual(self.snapshot()[backup + "/journal.md" + CHANGED], written["journal.md"])
 
     def test_given_the_backup_was_deleted_before_the_cleanup_then_the_root_files_get_a_new_one(self):
         self.build_state_v1()
@@ -379,7 +406,7 @@ class MigrateStateTest(ScriptTestCase):
         resumed = self.migrate()
         after = self.snapshot()
 
-        self.assertEqual((resumed.returncode, resumed.stdout), (0, ""))
+        self.assertEqual((resumed.returncode, resumed.stdout), (0, SET_ASIDE))
         self.assertEqual(files_of(without_backups(after)), MIGRATED_FILES)
         self.assertEqual(after["backups/{}/journal.md{}".format(self.backup_directories()[0], CHANGED)], before["journal.md"])
 
@@ -392,7 +419,7 @@ class MigrateStateTest(ScriptTestCase):
         result = self.migrate()
         saved = self.path("cockpit-home/backups", self.backup_directories()[0], "state.md" + CHANGED)
 
-        self.assertEqual(result.stdout, UPDATED)
+        self.assertEqual(result.stdout, UPDATED + SET_ASIDE)
         self.assertFalse(os.path.lexists(self.path("cockpit-home/state.md")))
         self.assertTrue(os.path.islink(saved))
         self.assertTrue(os.path.isfile(real))

@@ -280,30 +280,41 @@ def free_changed_path(backup, name):
     return path
 
 
+def is_legacy_file(root, name):
+    path = os.path.join(root, name)
+
+    if os.path.islink(path):
+        return name == LEGACY_STATE_FILE
+
+    return os.path.isfile(path)
+
+
 def retire_legacy_file(root, name, backup):
     path = os.path.join(root, name)
     saved = os.path.join(backup, name)
-    is_link = os.path.islink(path)
 
-    if is_link and name != LEGACY_STATE_FILE:
-        return
+    if not is_legacy_file(root, name):
+        return False
 
-    if not is_link and not os.path.isfile(path):
-        return
-
-    if not is_link and is_plain_file(saved) and filecmp.cmp(path, saved, shallow=False):
+    if is_plain_file(path) and is_plain_file(saved) and filecmp.cmp(path, saved, shallow=False):
         os.remove(path)
-        return
+        return False
 
     os.rename(path, free_changed_path(backup, name))
+    return True
 
 
 def retire_legacy_files(root, backup):
+    set_aside = False
+
     for name in LEGACY_ROOT_FILES:
         try:
-            retire_legacy_file(root, name, backup)
+            set_aside = retire_legacy_file(root, name, backup) or set_aside
         except OSError:
             pass
+
+    if set_aside:
+        announce("state: version 1 files set aside")
 
 
 def undo_file(root, relative):
@@ -654,9 +665,13 @@ def describe(error):
     return re.sub(r"[^A-Za-z0-9 ._()/-]", "", text)[:100]
 
 
-def announce_update():
-    print("state: updated to version {}".format(SCHEMA_VERSION))
+def announce(line):
+    print(line)
     sys.stdout.flush()
+
+
+def announce_update():
+    announce("state: updated to version {}".format(SCHEMA_VERSION))
 
 
 def announce_newer():
@@ -713,9 +728,13 @@ def pending_work(root):
             return NEWER, None
 
         legacy = read_state(state_path) if os.path.isfile(state_path) else None
+        legacy_schema = schema_of(legacy[0]) if legacy else None
 
-        if legacy is not None and schema_of(legacy[0]) == 1:
-            return CLEANUP, legacy
+        if legacy_schema is not None and legacy_schema > SCHEMA_VERSION:
+            return NOTHING, None
+
+        if any(is_legacy_file(root, name) for name in LEGACY_ROOT_FILES):
+            return CLEANUP, None
 
         return NOTHING, None
 

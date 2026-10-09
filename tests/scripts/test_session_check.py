@@ -7,6 +7,8 @@ from support import SCRIPTS_DIR, ScriptTestCase
 
 LAST_LINE = "Load the cockpit skill before answering the first request of this session."
 NEWER_LINE = "state: written by a newer cockpit, left untouched"
+UPDATED_LINE = "state: updated to version 2"
+SET_ASIDE_LINE = "state: version 1 files set aside"
 LINKS_LINE = "railway links: to refresh"
 HEALTH_WITHOUT_LINKS = "health: not checked, the Railway links are to refresh"
 HEALTH_WITHOUT_ANSWER = "health: not checked, Railway did not answer (sign-in expired or no network)"
@@ -365,6 +367,38 @@ class SessionCheckLayoutTest(ScriptTestCase):
         self.assertIn(LINKS_LINE, lines)
         self.assertIn(HEALTH_WITHOUT_LINKS, lines)
         self.assertTrue(self.exists("cockpit-home/projects/acme-studio/.relink"))
+
+    def test_given_version_1_files_written_after_the_move_then_the_context_says_once_they_were_set_aside(self):
+        self.write_v2_state("acme-studio")
+        self.write("cockpit-home/journal.md", "- 2026-10-09: written by a window opened before the update\n")
+
+        first = self.lines()
+        second = self.lines()
+
+        self.assertIn(SET_ASIDE_LINE, first)
+        self.assertIn("active project: acme-studio", first)
+        self.assertFalse(self.exists("cockpit-home/journal.md"))
+        self.assertNotIn(SET_ASIDE_LINE, second)
+
+    def test_given_both_state_lines_in_any_order_then_both_are_passed_on_and_nothing_else(self):
+        self.write_v2_state("acme-studio")
+
+        for first, second in ((UPDATED_LINE, SET_ASIDE_LINE), (SET_ASIDE_LINE, UPDATED_LINE)):
+            with self.subTest(first=first):
+                shutil.rmtree(self.path("plugin"), ignore_errors=True)
+                script = self.plugin_with(migrate_state="echo '{}'\necho '{}'\necho 'token: sk-live-123'\n".format(first, second))
+
+                result = self.run_plugin(script)
+
+                self.assert_usable(result)
+                self.assertEqual(result.stdout.splitlines()[4:6], [UPDATED_LINE, SET_ASIDE_LINE])
+                self.assertNotIn("sk-live-123", result.stdout)
+
+        shutil.rmtree(self.path("plugin"))
+        noisy = self.run_plugin(self.plugin_with(migrate_state="echo '{}'\necho 'token: sk-live-123'\n".format(SET_ASIDE_LINE)))
+
+        self.assertEqual(noisy.stdout.splitlines()[4], SET_ASIDE_LINE)
+        self.assertNotIn("sk-live-123", noisy.stdout)
 
     def test_given_a_version_2_state_recorded_by_an_older_plugin_then_the_version_comes_from_the_user_file(self):
         self.write_v2_state("acme-studio")

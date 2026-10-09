@@ -17,6 +17,7 @@ migration_wait_seconds=${COCKPIT_MIGRATION_WAIT:-20}
 relink_wait_seconds=${COCKPIT_RELINK_WAIT:-10}
 stop_grace_seconds=5
 updated_state_line='state: updated to version 2'
+aside_state_line='state: version 1 files set aside'
 newer_state_line='state: written by a newer cockpit, left untouched'
 failed_migration_prefix='migration: failed ('
 reason_characters='A-Za-z0-9 ._()/-'
@@ -208,6 +209,24 @@ is_newer_state() {
   [ "$saved_version" != unknown ] && [ "$saved_version" -gt "$current_schema_version" ]
 }
 
+print_state_lines() {
+  second_line=
+
+  case $migration_output in
+    *"$newline"*)
+      second_line=${migration_output#*"$newline"}
+      second_line=${second_line%%"$newline"*}
+      second_line=${second_line%"$carriage_return"}
+      ;;
+  esac
+
+  for known_line in "$updated_state_line" "$aside_state_line"; do
+    if [ "$migration_line" = "$known_line" ] || [ "$second_line" = "$known_line" ]; then
+      printf '%s\n' "$known_line"
+    fi
+  done
+}
+
 run_migration() {
   migration_status=0
   migration_output=
@@ -233,8 +252,8 @@ run_migration() {
   fi
 
   case $migration_line in
-    "$updated_state_line")
-      printf '%s\n' "$updated_state_line"
+    "$updated_state_line" | "$aside_state_line")
+      print_state_lines
       ;;
     "$failed_migration_prefix"*')')
       reason=${migration_line#"$failed_migration_prefix"}
