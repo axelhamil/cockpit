@@ -1,10 +1,24 @@
 #!/bin/sh
 set -eu
 
+if [ "${COCKPIT_TEST:-}" != 1 ]; then
+  unset COCKPIT_MIGRATION_WAIT
+fi
+
 state_home=${COCKPIT_HOME:-${HOME:-}/.cockpit}
-state_file=$state_home/state.md
 header_line_limit=50
 carriage_return=$(printf '\r')
+newline='
+'
+newer_schema_status=3
+several_apps_status=4
+migration_wait_seconds=${COCKPIT_MIGRATION_WAIT:-20}
+migration_grace_seconds=5
+updated_state_line='state: updated to version 2'
+newer_state_line='state: written by a newer cockpit, left untouched'
+failed_migration_prefix='migration: failed ('
+reason_characters='A-Za-z0-9 ._()/-'
+reason_length_limit=100
 
 trim() {
   trimmed=$1
@@ -16,6 +30,10 @@ trim() {
 state_value() {
   in_header=0
   lines_read=0
+
+  if [ ! -f "$2" ] || [ ! -r "$2" ]; then
+    return 0
+  fi
 
   while IFS= read -r line || [ -n "$line" ]; do
     lines_read=$((lines_read + 1))
@@ -44,7 +62,7 @@ state_value() {
         break
         ;;
     esac
-  done <"$state_file"
+  done <"$2"
 }
 
 known_schema_version() {
@@ -79,6 +97,13 @@ known_slug() {
   case $1 in
     '' | *[!a-z0-9-]*) printf 'unknown' ;;
     *) printf '%s' "$1" ;;
+  esac
+}
+
+known_reason() {
+  case $1 in
+    '' | *[!$reason_characters]*) printf 'reason not readable' ;;
+    *) printf "%.${reason_length_limit}s" "$1" ;;
   esac
 }
 
@@ -129,20 +154,139 @@ print_dependencies() {
   set +f
 }
 
-announce_project() {
-  if [ -z "${scripts_dir:-}" ] || ! project_directory=$(sh "$scripts_dir/project-directory.sh" 2>/dev/null); then
-    printf 'active project: none\n'
+stop_after() {
+  elapsed=0
+
+  while [ "$elapsed" -lt "$2" ]; do
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+
+  kill "$1" 2>/dev/null || return 0
+
+  elapsed=0
+
+  while [ "$elapsed" -lt "$migration_grace_seconds" ]; do
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+
+  kill -9 "$1" 2>/dev/null || :
+}
+
+migrate_within_the_wait() {
+  sh "$scripts_dir/migrate-state.sh" 2>/dev/null &
+  migration_pid=$!
+
+  (stop_after "$migration_pid" "$migration_wait_seconds") >/dev/null 2>&1 &
+  watchdog=$!
+
+  migration_exit=0
+  wait "$migration_pid" || migration_exit=$?
+  kill "$watchdog" 2>/dev/null || :
+
+  return "$migration_exit"
+}
+
+run_migration() {
+  migration_status=0
+  migration_output=
+
+  if [ -z "${scripts_dir:-}" ]; then
     return 0
   fi
 
-  project_slug=legacy
+  migration_output=$(migrate_within_the_wait) || migration_status=$?
+  migration_line=${migration_output%%"$newline"*}
+  migration_line=${migration_line%"$carriage_return"}
 
-  if [ "$project_directory" != "$state_home" ]; then
-    project_slug=$(known_slug "${project_directory##*/}")
+  if [ "$migration_status" = "$newer_schema_status" ] || [ "$migration_line" = "$newer_state_line" ]; then
+    migration_status=$newer_schema_status
+    printf '%s\n' "$newer_state_line"
+    return 0
   fi
 
-  printf 'active project: %s\n' "$project_slug"
-  printf 'project directory: %s\n' "$project_directory"
+  case $migration_line in
+    "$updated_state_line")
+      printf '%s\n' "$updated_state_line"
+      ;;
+    "$failed_migration_prefix"*')')
+      reason=${migration_line#"$failed_migration_prefix"}
+      printf '%s%s)\n' "$failed_migration_prefix" "$(known_reason "${reason%')'}")"
+      ;;
+    *)
+      if [ "$migration_status" != 0 ]; then
+        printf '%sstopped before the end, status %s)\n' "$failed_migration_prefix" "$migration_status"
+      fi
+      ;;
+  esac
+}
+
+find_project() {
+  project_status=0
+  project_directory=
+  project_slug=
+
+  if [ -z "${scripts_dir:-}" ]; then
+    project_status=1
+    return 0
+  fi
+
+  project_directory=$(sh "$scripts_dir/project-directory.sh" 2>/dev/null) || project_status=$?
+
+  if [ "$project_status" != 0 ]; then
+    return 0
+  fi
+
+  case $project_directory in
+    "$state_home") project_slug=legacy ;;
+    "$state_home"/projects/*) project_slug=$(known_slug "${project_directory#"$state_home"/projects/}") ;;
+    *) project_slug=unknown ;;
+  esac
+
+  if [ "$project_slug" = unknown ]; then
+    project_status=1
+  fi
+}
+
+announce_project() {
+  find_project
+
+  if [ "$project_status" = 0 ]; then
+    project_file=$project_directory/state.md
+    printf 'active project: %s\n' "$project_slug"
+    printf 'project directory: %s\n' "$project_directory"
+
+    if [ -e "$project_directory/.relink" ]; then
+      printf 'railway links: to refresh\n'
+    fi
+    return 0
+  fi
+
+  project_file=$user_file
+  printf 'active project: none\n'
+
+  if [ "$user_file" != "$state_home/cockpit.md" ]; then
+    return 0
+  fi
+
+  project_file=
+
+  if [ "$project_status" = "$several_apps_status" ]; then
+    printf 'note: several apps are saved here, this version of cockpit works on one app at a time\n'
+  else
+    printf 'note: the app folder could not be found, its saved setup was not read\n'
+  fi
+}
+
+print_health() {
+  health_project=$project_slug
+
+  if [ "$project_slug" = legacy ]; then
+    health_project=
+  fi
+
+  sh "$scripts_dir/health-check.sh" --project "$health_project" 2>/dev/null || :
 }
 
 print_context() {
@@ -160,29 +304,53 @@ print_context() {
   fi
 
   printf 'state directory: %s\n' "$state_home"
+
+  run_migration
+
+  if [ "$migration_status" = "$newer_schema_status" ]; then
+    return 0
+  fi
+
+  user_file=$state_home/state.md
+
+  if [ -f "$state_home/cockpit.md" ]; then
+    user_file=$state_home/cockpit.md
+  fi
+
   announce_project
 
-  if [ ! -e "$state_file" ]; then
+  if [ ! -e "$user_file" ]; then
     printf 'onboarding: absent (no state file yet, onboarding has to run first)\n'
     return 0
   fi
 
-  if [ ! -r "$state_file" ] || [ ! -f "$state_file" ]; then
+  if [ ! -r "$user_file" ] || [ ! -f "$user_file" ]; then
     printf 'note: the state file cannot be read, onboarding status is unknown\n'
     return 0
   fi
 
-  printf 'state schema version: %s\n' "$(known_schema_version "$(state_value schema_version)")"
-  printf 'language: %s\n' "$(known_language "$(state_value language)")"
+  printf 'state schema version: %s\n' "$(known_schema_version "$(state_value schema_version "$user_file")")"
+  printf 'language: %s\n' "$(known_language "$(state_value language "$user_file")")"
 
-  onboarding=$(state_value onboarding)
+  if [ -z "$project_file" ]; then
+    print_dependencies "$(state_value dependencies "$user_file")"
+    return 0
+  fi
+
+  onboarding=$(state_value onboarding "$project_file")
+  onboarding_step=$(state_value onboarding_step "$project_file")
+
+  if [ "$project_file" != "$user_file" ] && [ ! -e "$project_file" ]; then
+    onboarding=in-progress
+    onboarding_step=profile
+  fi
 
   case $onboarding in
     complete)
       printf 'onboarding: complete\n'
       ;;
     in-progress)
-      printf 'onboarding: in progress, step reached: %s\n' "$(known_step "$(state_value onboarding_step)")"
+      printf 'onboarding: in progress, step reached: %s\n' "$(known_step "$onboarding_step")"
       ;;
     *)
       printf 'onboarding: unknown\n'
@@ -190,13 +358,13 @@ print_context() {
       ;;
   esac
 
-  print_dependencies "$(state_value dependencies)"
+  print_dependencies "$(state_value dependencies "$user_file")"
 
   if [ "$onboarding" = complete ] && [ -n "${scripts_dir:-}" ]; then
-    sh "$scripts_dir/health-check.sh" 2>/dev/null || :
+    print_health
   fi
 
-  recorded_version=$(known_version "$(state_value plugin_version)")
+  recorded_version=$(known_version "$(state_value plugin_version "$user_file")")
 
   if [ "$onboarding" != complete ] || [ "$current_version" = unknown ]; then
     return 0

@@ -5,6 +5,8 @@ import tempfile
 
 from support import SCRIPTS_DIR, ScriptTestCase
 
+LAST_LINE = "Load the cockpit skill before answering the first request of this session."
+
 
 class SessionCheckTest(ScriptTestCase):
     def setUp(self):
@@ -256,3 +258,182 @@ class SessionCheckLayoutTest(ScriptTestCase):
         self.assertIn("active project: legacy", lines)
         self.assertIn("project directory: " + self.home, lines)
         self.assertIn("onboarding: unknown", lines)
+
+    def plugin_with(self, **scripts):
+        root = self.path("plugin")
+        shutil.copytree(SCRIPTS_DIR, os.path.join(root, "scripts"), ignore=shutil.ignore_patterns("__pycache__"))
+
+        for name, body in scripts.items():
+            target = os.path.join(root, "scripts", name.replace("_", "-") + ".sh")
+            os.remove(target)
+
+            if body is not None:
+                with open(target, "w", encoding="utf-8") as handle:
+                    handle.write("#!/bin/sh\n" + body)
+
+        return os.path.join(root, "scripts", "session-check.sh")
+
+    def run_plugin(self, script, **environment):
+        return subprocess.run(
+            [shutil.which("sh"), script],
+            env={**self.env, **environment},
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            timeout=60,
+        )
+
+    def assert_usable(self, result):
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout.splitlines()[0], "cockpit session context")
+        self.assertEqual(result.stdout.splitlines()[-1], LAST_LINE)
+
+    def test_given_a_version_1_state_then_it_is_migrated_once_and_the_session_runs_on_the_new_layout(self):
+        self.build_state_v1()
+
+        first = self.lines()
+        second = self.lines()
+
+        for line in (
+            "state: updated to version 2",
+            "active project: acme-studio",
+            "project directory: " + self.home + "/projects/acme-studio",
+            "railway links: to refresh",
+            "state schema version: 2",
+            "language: fr",
+            "onboarding: complete",
+            "health: not checked, Railway did not answer (sign-in expired or no network)",
+        ):
+            self.assertIn(line, first)
+        self.assertNotIn("state: updated to version 2", second)
+        self.assertIn("railway links: to refresh", second)
+
+    def test_given_a_failed_migration_then_the_session_runs_on_the_version_1_state_as_before(self):
+        self.build_state_v1()
+        before = self.snapshot()
+
+        lines = self.lines(COCKPIT_MIGRATION_FAIL_AT="built")
+
+        self.assertIn("migration: failed (stopped on purpose after built)", lines)
+        self.assertIn("active project: legacy", lines)
+        self.assertIn("project directory: " + self.home, lines)
+        self.assertIn("state schema version: 1", lines)
+        self.assertIn("onboarding: complete", lines)
+        self.assertNotIn("railway links: to refresh", lines)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_given_a_state_from_a_newer_cockpit_then_nothing_is_read_or_changed(self):
+        self.write("cockpit-home/cockpit.md", "---\nschema_version: 3\nlanguage: fr\n---\n")
+        before = self.snapshot()
+
+        result = self.check()
+
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("state: written by a newer cockpit, left untouched", result.stdout)
+        for line in ("active project", "language:", "onboarding:", "health:"):
+            self.assertNotIn(line, result.stdout)
+        self.assertEqual(result.stdout.splitlines()[-1], LAST_LINE)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_given_a_version_2_state_with_one_app_then_that_app_is_the_active_one(self):
+        self.write_v2_state("acme-studio", onboarding="in-progress")
+
+        lines = self.lines()
+
+        self.assertIn("active project: acme-studio", lines)
+        self.assertIn("project directory: " + self.home + "/projects/acme-studio", lines)
+        self.assertIn("state schema version: 2", lines)
+        self.assertIn("language: en", lines)
+        self.assertIn("onboarding: in progress, step reached: check", lines)
+        self.assertNotIn("railway links: to refresh", lines)
+
+    def test_given_a_user_file_and_no_app_folder_yet_then_the_onboarding_resumes_at_the_profile(self):
+        self.write_v2_state()
+
+        lines = self.lines()
+
+        self.assertIn("active project: app", lines)
+        self.assertIn("onboarding: in progress, step reached: profile", lines)
+
+    def test_given_several_apps_then_no_app_is_chosen_for_the_session(self):
+        self.write_v2_state("acme-studio", "beta-shop")
+
+        result = self.check()
+        lines = result.stdout.splitlines()
+
+        self.assert_usable(result)
+        self.assertIn("active project: none", lines)
+        self.assertIn("note: several apps are saved here, this version of cockpit works on one app at a time", lines)
+        self.assertFalse(any(line.startswith("project directory:") for line in lines))
+        self.assertIn("state schema version: 2", lines)
+        self.assertTrue(any(line.startswith("dependency git: ") for line in lines))
+        self.assertFalse(any(line.startswith("onboarding:") for line in lines))
+
+    def test_given_no_python_then_the_failure_is_reported_and_the_version_1_state_is_read(self):
+        self.build_state_v1()
+        before = self.snapshot()
+        self.env["PATH"] = self.isolated_path("sh", "sed", "dirname", "uname", "sleep")
+
+        result = self.check()
+        lines = result.stdout.splitlines()
+
+        self.assert_usable(result)
+        self.assertIn("migration: failed (python3 is not available)", lines)
+        self.assertIn("active project: legacy", lines)
+        self.assertIn("onboarding: complete", lines)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_given_a_migration_that_crashes_with_noise_then_only_a_safe_line_is_printed(self):
+        self.build_state_v1()
+        script = self.plugin_with(migrate_state="echo 'token: sk-live-123'\necho 'Traceback' >&2\nexit 1\n")
+
+        result = self.run_plugin(script)
+        lines = result.stdout.splitlines()
+
+        self.assert_usable(result)
+        self.assertNotIn("sk-live-123", result.stdout + result.stderr)
+        self.assertIn("migration: failed (stopped before the end, status 1)", lines)
+        self.assertIn("active project: legacy", lines)
+        self.assertIn("onboarding: complete", lines)
+
+    def test_given_a_migration_that_never_ends_then_it_is_stopped_and_the_session_goes_on(self):
+        self.build_state_v1()
+        script = self.plugin_with(migrate_state="exec sleep 30\n")
+
+        result = self.run_plugin(script, COCKPIT_MIGRATION_WAIT="1")
+        lines = result.stdout.splitlines()
+
+        self.assert_usable(result)
+        self.assertIn("migration: failed (stopped before the end, status 143)", lines)
+        self.assertIn("onboarding: complete", lines)
+
+    def test_given_a_failure_reason_that_is_not_plain_text_then_it_is_not_repeated(self):
+        self.build_state_v1()
+        script = self.plugin_with(migrate_state="echo 'migration: failed (DATABASE_URL=postgres://u:p@h)'\n")
+
+        unsafe = self.run_plugin(script).stdout.splitlines()
+        shutil.rmtree(self.path("plugin"))
+        script = self.plugin_with(migrate_state="echo 'migration: failed ({})'\n".format("a" * 300))
+        long = self.run_plugin(script).stdout.splitlines()
+
+        self.assertIn("migration: failed (reason not readable)", unsafe)
+        self.assertIn("migration: failed ({})".format("a" * 100), long)
+
+    def test_given_no_way_to_find_the_app_folder_then_the_session_still_starts(self):
+        self.write_v2_state("acme-studio")
+
+        for body in (None, "exit 1\n", "echo /etc\necho 'password: hunter2'\n"):
+            with self.subTest(body=body):
+                shutil.rmtree(self.path("plugin"), ignore_errors=True)
+                result = self.run_plugin(self.plugin_with(project_directory=body))
+                lines = result.stdout.splitlines()
+
+                self.assert_usable(result)
+                self.assertNotIn("hunter2", result.stdout)
+                self.assertIn("active project: none", lines)
+                self.assertIn("note: the app folder could not be found, its saved setup was not read", lines)
+                self.assertIn("state schema version: 2", lines)
+                self.assertIn("language: en", lines)
+                self.assertTrue(any(line.startswith("dependency git: ") for line in lines))
+                self.assertFalse(any(line.startswith(("project directory:", "onboarding:")) for line in lines))
