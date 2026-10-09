@@ -83,7 +83,7 @@ Each workflow reads the SaaS data, never writes to it. A message carries the acc
 
 1. The app's home page and its sign-in page.
 2. The health address of the API when the code has one (`codebase.md`).
-3. Each tool deployed by railway-pilot.
+3. Each tool deployed by cockpit.
 4. Certificate expiry on the app's domain.
 5. One notification channel, tested with a real message.
 6. A status page, only if the user wants to share one with customers.

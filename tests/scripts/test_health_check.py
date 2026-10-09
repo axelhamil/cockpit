@@ -27,8 +27,8 @@ def project(*instances):
 class HealthCheckTest(ScriptTestCase):
     def setUp(self):
         super().setUp()
-        self.write("pilot-home/saas-project/.keep", "")
-        self.env["RP_HEALTH_WAIT"] = "5"
+        self.write("cockpit-home/saas-project/.keep", "")
+        self.env["COCKPIT_HEALTH_WAIT"] = "5"
 
     def railway_answers(self, payload):
         self.write("status.json", json.dumps(payload))
@@ -73,7 +73,7 @@ class HealthCheckTest(ScriptTestCase):
 
     def test_given_railway_hangs_then_the_check_gives_up_and_says_so(self):
         self.install_fake_railway("trap '' TERM\nsleep 30\n")
-        self.env["RP_HEALTH_WAIT"] = "1"
+        self.env["COCKPIT_HEALTH_WAIT"] = "1"
         started = time.monotonic()
 
         result = self.check()
@@ -99,7 +99,7 @@ class HealthCheckTest(ScriptTestCase):
 
     def test_given_no_linked_project_then_nothing_is_said(self):
         self.railway_answers(project(("web", "FAILED")))
-        self.env["RAILWAY_PILOT_HOME"] = self.path("elsewhere")
+        self.env["COCKPIT_HOME"] = self.path("elsewhere")
 
         result = self.check()
 

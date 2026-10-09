@@ -1,5 +1,5 @@
 {
-  "description": "railway-pilot session check",
+  "description": "cockpit session check",
   "hooks": {
     "SessionStart": [
       {

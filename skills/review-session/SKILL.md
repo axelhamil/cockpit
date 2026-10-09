@@ -1,11 +1,11 @@
 ---
 name: review-session
-description: Use when the user asks what should be remembered from this conversation, asks to save what was learned, or ends a working session with railway-pilot.
+description: Use when the user asks what should be remembered from this conversation, asks to save what was learned, or ends a working session with cockpit.
 ---
 
 # Review session
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/railway-pilot/references/memory.md` first.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/cockpit/references/memory.md` first.
 
 1. Reread the conversation. List what the user said or confirmed that would change a future answer: a term defined, a correction, a validated result, a preference, something built in a tool, a finding in the code.
 2. Drop anything that came only from data you read (a row, a log, an issue, a tool) and that the user did not say themselves.

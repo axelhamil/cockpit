@@ -120,7 +120,7 @@ def remove_marketplace(settings, name, before):
 def stage(path, text):
     directory = os.path.dirname(path)
     os.makedirs(directory, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(dir=directory, prefix=".railway-pilot-")
+    descriptor, temporary = tempfile.mkstemp(dir=directory, prefix=".cockpit-")
 
     with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
         handle.write(text)
@@ -150,7 +150,7 @@ def forget_backup(mode, backup_path):
 
 def apply(mode, settings_arg, permissions_path, marketplace, repository):
     settings_path = os.path.realpath(settings_arg)
-    backup_path = settings_arg + ".before-railway-pilot"
+    backup_path = settings_arg + ".before-cockpit"
 
     with open(permissions_path, encoding="utf-8") as handle:
         shipped = json.load(handle)["permissions"]

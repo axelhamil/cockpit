@@ -1,14 +1,14 @@
 {
   "permissions": {
     "additionalDirectories": [
-      "~/.railway-pilot"
+      "~/.cockpit"
     ],
     "allow": [
       "Bash(railway *)",
       "Bash(gh *)",
       "Bash(git *)",
-      "Read(~/.railway-pilot/**)",
-      "Edit(~/.railway-pilot/**)",
+      "Read(~/.cockpit/**)",
+      "Edit(~/.cockpit/**)",
       "Bash(sh */scripts/database-access.sh *)",
       "Bash(sh */scripts/install-gh.sh)",
       "Bash(sh */scripts/github-login.sh)",

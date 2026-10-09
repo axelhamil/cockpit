@@ -26,10 +26,10 @@ Written in the client's language, in this order:
 
 ## Open the issue
 
-Write the hand-off file to `~/.railway-pilot/handoff.md`. `<owner>/<repo>` is on the `App service` line of `state.md`. Then:
+Write the hand-off file to `~/.cockpit/handoff.md`. `<owner>/<repo>` is on the `App service` line of `state.md`. Then:
 
 ```
-gh issue create --repo <owner>/<repo> --label via-claude --title "<what is wrong or wanted, in one line>" --body-file ~/.railway-pilot/handoff.md
+gh issue create --repo <owner>/<repo> --label via-claude --title "<what is wrong or wanted, in one line>" --body-file ~/.cockpit/handoff.md
 ```
 
 - The developer has a GitHub handle in `state.md`: add `--assignee <handle>`. Refused because they are not on the repository: create it without, and mention `@<handle>` in the body.

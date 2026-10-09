@@ -1,12 +1,12 @@
 #!/bin/sh
 set -eu
 
-if [ "${RP_TEST:-}" != 1 ]; then
-  unset RAILWAY_BIN RP_CLIPBOARD RP_OPEN RP_OPEN_DELAY GH_BIN RP_BIN_DIR RP_SHELL_PROFILE CLAUDE_SETTINGS
+if [ "${COCKPIT_TEST:-}" != 1 ]; then
+  unset RAILWAY_BIN COCKPIT_CLIPBOARD COCKPIT_OPEN COCKPIT_OPEN_DELAY GH_BIN COCKPIT_BIN_DIR COCKPIT_SHELL_PROFILE CLAUDE_SETTINGS
 fi
 
-install_dir=${RP_BIN_DIR:-$HOME/.local/bin}
-profile=${RP_SHELL_PROFILE:-$HOME/.zshrc}
+install_dir=${COCKPIT_BIN_DIR:-$HOME/.local/bin}
+profile=${COCKPIT_SHELL_PROFILE:-$HOME/.zshrc}
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 release_api=https://api.github.com/repos/cli/cli/releases/latest
 

@@ -7,13 +7,13 @@ Something stopped working, a `health: not checked` line, a missing dependency, o
 | Check | Broken when | Fix |
 |---|---|---|
 | `railway whoami` | error or "Unauthorized" | `railway login` (tell the user first: a browser tab opens, they approve), in the background |
-| `railway status --json` in `~/.railway-pilot/saas-project/` | no linked project | `railway link -p <project id> -e <environment>` with the values of `state.md` |
-| Same in `~/.railway-pilot/tools-project/`, when a tool is recorded as `project tools` | no linked project | same, with the tools project |
+| `railway status --json` in `~/.cockpit/saas-project/` | no linked project | `railway link -p <project id> -e <environment>` with the values of `state.md` |
+| Same in `~/.cockpit/tools-project/`, when a tool is recorded as `project tools` | no linked project | same, with the tools project |
 | `gh auth status --hostname github.com`, when GitHub is in the plan | not logged in | `onboarding.md`, GitHub step |
-| `git -C ~/.railway-pilot/repo status` | no clone, or not a repository | `gh repo clone <owner>/<repo> ~/.railway-pilot/repo` |
+| `git -C ~/.cockpit/repo status` | no clone, or not a repository | `gh repo clone <owner>/<repo> ~/.cockpit/repo` |
 | Dependencies of the session context | `missing` | `dependencies.md` |
 | The Railway CLI is older than 5.44 (`railway --version`) | commands unknown | install command of `dependencies.md` |
-| Permission pop-ups are back | settings were reset | `sh $SCRIPTS/apply-settings.sh --marketplace railway-pilot --repo <owner>/railway-pilot` |
+| Permission pop-ups are back | settings were reset | `sh $SCRIPTS/apply-settings.sh --marketplace cockpit --repo <owner>/cockpit` |
 | A tool's MCP server does not list its tools | sign-in expired | the user types `/mcp`, picks the tool and approves |
 | `state.md` unreadable or half written | onboarding status unknown | rebuild it from what Railway and GitHub answer, keep the other state files, then `onboarding.md` for what is missing |
 
@@ -21,18 +21,18 @@ Two failures on the same line: `escalation.md`.
 
 ## Removal
 
-The user wants to stop using railway-pilot on this Mac. Say first, in two sentences, what stays and what goes:
+The user wants to stop using cockpit on this Mac. Say first, in two sentences, what stays and what goes:
 
 - **Stays**: the app, the tools deployed on Railway (they keep running and keep costing), the pull requests, the backups. Nothing online is touched.
 - **Goes**: the saved setup and memory on this Mac, the sign-ins, the plugin.
 
 One AskUserQuestion (this is not reversible), two questions: keep a copy of the memory on the Desktop or not, and leave the tools running on Railway or delete them too (their content is lost). Tools to delete: `tools.md`, removing a tool, before anything else. Then:
 
-1. Copy asked: `cp -R ~/.railway-pilot ~/Desktop/railway-pilot-memory && rm -rf ~/Desktop/railway-pilot-memory/secrets ~/Desktop/railway-pilot-memory/repo`.
-2. `sh $SCRIPTS/apply-settings.sh --remove --marketplace railway-pilot`.
+1. Copy asked: `cp -R ~/.cockpit ~/Desktop/cockpit-memory && rm -rf ~/Desktop/cockpit-memory/secrets ~/Desktop/cockpit-memory/repo`.
+2. `sh $SCRIPTS/apply-settings.sh --remove --marketplace cockpit`.
 3. `claude mcp remove <name> --scope user` for each tool driven by MCP in `state.md`.
 4. `gh auth logout --hostname github.com` and `railway logout`.
-5. `mv ~/.railway-pilot ~/.Trash/railway-pilot-$(date +%Y%m%d%H%M%S)`.
-6. `claude plugin uninstall railway-pilot@railway-pilot` then `claude plugin marketplace remove railway-pilot`. Last, because the scripts live in the plugin.
+5. `mv ~/.cockpit ~/.Trash/cockpit-$(date +%Y%m%d%H%M%S)`.
+6. `claude plugin uninstall cockpit@cockpit` then `claude plugin marketplace remove cockpit`. Last, because the scripts live in the plugin.
 
 Tell them it is done, and which tools are still running on Railway.

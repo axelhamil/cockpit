@@ -15,13 +15,13 @@ class ScriptTestCase(unittest.TestCase):
         workspace = tempfile.TemporaryDirectory()
         self.addCleanup(workspace.cleanup)
         self.workspace = workspace.name
-        self.home = os.path.join(self.workspace, "pilot-home")
+        self.home = os.path.join(self.workspace, "cockpit-home")
         os.makedirs(self.home)
         self.env = {
             "PATH": os.environ["PATH"],
             "HOME": self.workspace,
-            "RAILWAY_PILOT_HOME": self.home,
-            "RP_TEST": "1",
+            "COCKPIT_HOME": self.home,
+            "COCKPIT_TEST": "1",
         }
 
     def run_script(self, name, *arguments, env=None, cwd=None, stdin=None):

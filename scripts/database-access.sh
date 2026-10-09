@@ -1,13 +1,13 @@
 #!/bin/sh
 set -eu
 
-if [ "${RP_TEST:-}" != 1 ]; then
-  unset RAILWAY_BIN RP_CLIPBOARD RP_OPEN RP_OPEN_DELAY GH_BIN RP_BIN_DIR RP_SHELL_PROFILE CLAUDE_SETTINGS
+if [ "${COCKPIT_TEST:-}" != 1 ]; then
+  unset RAILWAY_BIN COCKPIT_CLIPBOARD COCKPIT_OPEN COCKPIT_OPEN_DELAY GH_BIN COCKPIT_BIN_DIR COCKPIT_SHELL_PROFILE CLAUDE_SETTINGS
 fi
 
 railway_bin=${RAILWAY_BIN:-railway}
-clipboard_command=${RP_CLIPBOARD:-pbcopy}
-state_home=${RAILWAY_PILOT_HOME:-$HOME/.railway-pilot}
+clipboard_command=${COCKPIT_CLIPBOARD:-pbcopy}
+state_home=${COCKPIT_HOME:-$HOME/.cockpit}
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 
 fail() {
