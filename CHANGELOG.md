@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/axelhamil/railway-pilot/compare/v1.0.0...v1.0.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **scripts:** clone and push the private app repo over https ([2068422](https://github.com/axelhamil/railway-pilot/commit/20684221a370615b888df18e26229efa8bdedadf))
+
 # 1.0.0 (2026-10-09)
 
 
