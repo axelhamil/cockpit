@@ -94,7 +94,7 @@ A tool not listed here: look for an MCP or API section in its official documenta
 
 ## 7. Fill it
 
-A tool left empty is not used. As soon as it answers and is connected, propose its standard setup and build it: `standards.md`.
+A tool left empty is not used. As soon as it answers and is connected, propose its standard setup and build it: `standards.md`. Later, keep offering the next missing piece as its "When to offer" section says.
 
 ## 8. Record
 

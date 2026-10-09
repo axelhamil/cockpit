@@ -10,7 +10,7 @@ What Claude learns at this client lives in `~/.railway-pilot/`. The plugin direc
 | What a table is for, a trap, a sensitive table | `schema.md` |
 | Where code lives, a convention, a file that always needs a developer | `codebase.md` |
 | A dashboard, workflow or saved question Claude built and the client validated | `tools.md` |
-| How the client wants answers, which figures they follow | `preferences.md` |
+| How the client wants answers, which figures they follow, which offers they declined | `preferences.md` |
 
 Anything that changed something (deployment, merge, setting, escalation) also gets a dated line in `journal.md`, ending with `undo:` and the way back when there is one (`undo.md`).
 

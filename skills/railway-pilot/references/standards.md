@@ -1,6 +1,17 @@
 # Standard setups
 
-What a tool should contain to be useful on day one. The user asked for it ("set it up", "what should I put in it"): build it. You are offering it unprompted, after a deployment: one AskUserQuestion, the whole standard recommended. Then show the result in the Browser pane.
+What a tool should contain to be useful on day one. The user asked for it ("set it up", "what should I put in it"): build it. You are offering it unprompted: the sentence of "When to offer" below, and build on a yes. Then show the result in the Browser pane.
+
+## When to offer
+
+Do not wait to be asked. Compare each tool of `state.md` with what `tools.md` says was built in it, and offer the next useful piece in one sentence at the end of your answer:
+
+- A tool was just deployed or connected: its first pass, offered in that same answer.
+- A tool holds less than its standard: the first item of its section below that `tools.md` does not list (Metabase without sheets or links, n8n without one of its automations, Uptime Kuma without a monitor for a tool added since, any other kind with an item missing).
+- The request shows a need the tool can cover: a question asked for the second time becomes a saved dashboard, a customer looked up by hand becomes the account sheet, a check they repeat becomes an automation or a monitor.
+- A new table or feature appeared in the app since the setup was built: the sheet or figure that goes with it.
+
+One offer per answer, the most useful one, said as a result ("I can add a sheet per customer, two clicks from any figure") and built on a yes. Declined: note it in `preferences.md` and do not offer it again. No offer while they report a problem, and never two in a row without a yes in between.
 
 The standard is a shape, never a copy. Fit it to this app from `schema.md`, `domain.md` and `codebase.md` before building anything.
 

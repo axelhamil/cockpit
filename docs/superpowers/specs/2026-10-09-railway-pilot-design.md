@@ -232,7 +232,7 @@ Flow:
 - **Status**: `references/status.md`, one screen (verdict, app, errors, cost, backups, tools, waiting changes).
 - **Undo**: `references/undo.md`. Every journal line for a change ends with `undo:` and the way back. The Railway CLI cannot roll back to an older deployment, so that path is a pull request revert or the dashboard in the Browser pane.
 - **Browser pane**: results are shown, pages are checked and admin screens are driven in the Browser pane of Claude Desktop. Passwords are typed by the user only.
-- **Standard setups**: `references/standards.md`. A shape per kind of tool (steering dashboards, entity sheets linked by click, automations, monitors), fitted to the app from its schema through five roles: account, member, object, activity, money.
+- **Standard setups**: `references/standards.md`. A shape per kind of tool (steering dashboards, entity sheets linked by click, automations, monitors), fitted to the app from its schema through five roles: account, member, object, activity, money. Claude offers the next missing piece unprompted, one offer per answer, never again once declined.
 - **Repair and removal**: `references/repair.md`, with `apply-settings.sh --remove`.
 
 ## 13. Hand-off to a developer
