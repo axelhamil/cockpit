@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/axelhamil/railway-pilot/compare/v1.5.0...v1.6.0) (2026-10-09)
+
+
+### Features
+
+* file every hand-off to a developer as a github issue ([c0b18f9](https://github.com/axelhamil/railway-pilot/commit/c0b18f90a7b804d6293e1f43316159cfd4c9f396))
+
 # [1.5.0](https://github.com/axelhamil/railway-pilot/compare/v1.4.0...v1.5.0) (2026-10-09)
 
 
