@@ -153,6 +153,7 @@ FAIL if <what a wrong or missing response looks like>.
 ### Marketplace and plugin manifests (docs: marketplace-reference, manifest-reference, hooks)
 
 - Plugin at the marketplace repo root: `"source": "."` is documented ("`.` on its own means the root itself"). `"source": "./"` also passes `claude plugin validate` (tested). Both pass; `./plugins/x` style is for subdirectories.
+- `repository` in `.claude-plugin/plugin.json` is written `https://github.com/<owner>/<repo>`: `apply-settings.sh` reads the marketplace source from it. Every plugin in the local plugin cache holds `.claude-plugin/plugin.json` at its root (looked at on 2026-10-09); `marketplace.json` is not copied there for the plugins seen, so the script does not rely on it.
 - `.claude-plugin/marketplace.json` required keys: `name`, `owner{name}`, `plugins[]` with `name` and `source`. Warns when `description` is missing. Entry `name` must equal the `plugin.json` `name`.
 
 ```json
@@ -229,7 +230,9 @@ FAIL if <what a wrong or missing response looks like>.
 - `gh auth login --hostname github.com --git-protocol https --web` without a terminal (stdin closed, gh 2.101.0 on Linux): prints `One-time code (XXXX-XXXX) copied to clipboard` and `Open this URL to continue in your web browser: https://github.com/login/device`, does not wait for Enter, does not open the browser, then polls until approval.
 - `gh auth setup-git [-h|--hostname <host>] [-f|--force]`: sets gh as git credential helper for all authenticated hosts; fails when none is authenticated; `--force` needs `--hostname`.
 - `gh api <endpoint> [-X|--method M] [-f|--raw-field k=v] [-F|--field k=v] [--input <file|->] [-H|--header] [--hostname] [-i|--include] [-q|--jq] [--paginate] [--slurp] [-p|--preview] [--cache] [--silent] [-t|--template] [--verbose]`.
+- `gh issue view <number> --json comments` and `gh pr view <number> --json comments,reviews` (run on 2026-10-09 on a public repository): each comment and each review holds `author.login`, `authorAssociation` (`NONE` for someone outside the repository) and `body`.
 - Default method is GET, but POST as soon as any `-f`, `-F` or `--input` parameter is added. `--method GET` keeps fields as a query string. `graphql` is an endpoint (always POST in practice with `-f query=...`).
+- `gh api repos/cli/cli/releases/latest` (run on 2026-10-09, with gh 2.101.0, on the release v2.102.0 of gh): each asset holds `name`, `browser_download_url` under `https://github.com/cli/cli/releases/download/` and `digest` written `sha256:<hex>`.
 
 ## State layout v2 (checked 2026-10-09 by a real run)
 

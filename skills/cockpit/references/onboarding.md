@@ -90,10 +90,10 @@ Record `Spending alert` in `state.md`, `none` when they declined.
 ## Step 6: settings
 
 ```
-sh $SCRIPTS/apply-settings.sh --marketplace cockpit --repo <owner>/cockpit
+sh $SCRIPTS/apply-settings.sh --marketplace cockpit
 ```
 
-`<owner>/cockpit` is the end of the `repository` URL in `.claude-plugin/plugin.json` of the plugin. This pre-approves the Railway, GitHub and git commands so the user is not asked to allow each one, and turns on automatic updates of the plugin. The permission pop-ups stop after this step.
+This pre-approves the Railway, GitHub and git commands so the user is not asked to allow each one, and turns on automatic updates of the plugin. The permission pop-ups stop after this step.
 
 ## Step 7: GitHub
 
