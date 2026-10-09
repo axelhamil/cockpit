@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/axelhamil/railway-pilot/compare/v1.1.0...v1.2.0) (2026-10-09)
+
+
+### Features
+
+* use the client's own database and github access ([e7df1e2](https://github.com/axelhamil/railway-pilot/commit/e7df1e2aa32d84128714e6daf86399416c15d9f8))
+
 # [1.1.0](https://github.com/axelhamil/railway-pilot/compare/v1.0.1...v1.1.0) (2026-10-09)
 
 
