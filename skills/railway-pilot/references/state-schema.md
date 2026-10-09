@@ -76,7 +76,7 @@ The body below the header uses these sections, in this order. Leave a section em
 | `journal.md` | One dated line per change, merge, escalation, memory write, a change that can be reversed ends with `undo:` and the way back | user's |
 | `proposals.md` | Changes wanted in the plugin: date, what happened, what should change, why | English |
 
-Managed by the scripts and by onboarding, never edited by hand: the directories `saas-project/` (linked to the SaaS project, for reading), `tools-project/` (linked to the tools project), `repo/` (clone of the app), `secrets/` (API keys of tools, mode 600), and the file `report.txt`.
+Managed by the scripts and by onboarding, never edited by hand: the directories `saas-project/` (linked to the SaaS project, for reading), `tools-project/` (linked to the tools project), `repo/` (clone of the app), `secrets/` (API keys of tools, mode 600), and the file `report.txt`. `handoff.md` holds the last hand-off, written by `escalation.md` and overwritten each time.
 
 ## Migration
 

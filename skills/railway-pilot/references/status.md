@@ -14,7 +14,7 @@ Run everything from `~/.railway-pilot/saas-project/`, in one go, then answer. Se
 | Load | `railway metrics --all --since 24h --json` |
 | Cost | `railway usage --json` and `railway usage --period previous --json` |
 | Backups | `railway postgres pitr backup list -s <postgres service> --json` and `railway postgres pitr schedule list -s <postgres service> --json` |
-| Waiting changes | `gh pr list --label via-claude --repo <owner>/<repo>` and the `Open escalations` of `state.md` |
+| Waiting changes | `gh pr list --label via-claude --repo <owner>/<repo>`, `gh issue list --label via-claude --repo <owner>/<repo>` and the `Open escalations` of `state.md` |
 | Tools | same `railway status --json` from `~/.railway-pilot/tools-project/` (skip when no tool is recorded as `project tools`; tools recorded as `project app` are already in the first answer) |
 
 A command that fails is reported as "not checked", never as fine.

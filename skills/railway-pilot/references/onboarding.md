@@ -32,7 +32,7 @@ Record the answers under `profile` in `state.md`.
 
 Derive from the profile:
 
-- Dependencies (`dependencies.md`): Command Line Tools and Railway CLI always; GitHub CLI when they picked changes to the app, understanding problems, or a developer reachable on GitHub. Node.js is never in the first plan.
+- Dependencies (`dependencies.md`): Command Line Tools and Railway CLI always; GitHub CLI when they picked changes to the app or understanding problems, or when they have a developer: hand-offs are filed as issues on the app's repository. Node.js is never in the first plan.
 - Steps of this file that apply.
 
 Show the plan in plain words: what will be installed and why, what will be created on Railway and that it is billed by usage, what they will have to click, and roughly how long (20 to 40 minutes). One confirmation. Record the plan.

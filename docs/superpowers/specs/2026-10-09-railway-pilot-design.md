@@ -245,7 +245,9 @@ Flow:
 
 A recommendation the client accepts or asks for, never a refusal. Claude recommends it when a change touches authentication, payments, permissions, a migration, the schema or existing data, when a bug cannot be verified without running the app, when a step failed twice, or when the effect on production is unclear.
 
-Claude prepares the hand-off file (business context, request, findings without personal data, logs, code excerpts with paths, suspected cause, urgency, what was tried). Depending on the configured channel: GitHub issue or pull request comment labelled `via-claude` after confirmation, or an email ready to copy. It is logged in `journal.md`.
+Claude prepares the hand-off file (business context, request, findings without personal data or secrets, logs, code excerpts with paths, suspected cause, urgency, what was tried) and files it as an issue labelled `via-claude`, without asking first. It is logged in `journal.md`.
+
+Decided on 2026-10-09: every hand-off is filed as an issue on the app's repository (label `via-claude`, developer assigned when known), whatever the channel. Email and "no developer" get the issue plus a message to copy. Later sessions follow the open issues and answer the developer's questions when the state files or the logs hold the answer.
 
 ## 14. Memory and self-improvement
 

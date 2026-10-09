@@ -255,3 +255,4 @@ FAIL if <what a wrong or missing response looks like>.
 - Dashboard Rollback of an older deployment driven through the Browser pane; Metabase click behaviour and models created through its MCP server.
 - `gh auth status --hostname github.com`, `gh auth logout --hostname github.com`, `gh repo clone <owner>/<repo> <dir>`, `gh pr close <number> --delete-branch`: used in the procedures, not run.
 - `railway usage limit set --soft` effect on a real workspace and who may set it; JSON shape of `usage limit status`; `gh repo view --json viewerPermission` values on a repository the account can only read.
+- `gh issue create [-R] [-t] [-F|--body-file] [-l] [-a|--assignee] [--attach file]` (flags read in the help of gh 2.101.0), `gh issue list --search`, `gh issue comment`: not run.
