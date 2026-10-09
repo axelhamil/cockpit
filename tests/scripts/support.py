@@ -26,9 +26,9 @@ class ScriptTestCase(unittest.TestCase):
             "COCKPIT_TEST": "1",
         }
 
-    def run_script(self, name, *arguments, env=None, cwd=None, stdin=None):
+    def run_script(self, name, *arguments, env=None, cwd=None, stdin=None, directory=SCRIPTS_DIR):
         return subprocess.run(
-            [SHELL, os.path.join(SCRIPTS_DIR, name), *arguments],
+            [SHELL, os.path.join(directory, name), *arguments],
             env={**self.env, **(env or {})},
             cwd=cwd or self.workspace,
             input=stdin,
