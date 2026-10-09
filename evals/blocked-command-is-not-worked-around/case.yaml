@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: blocked-command-is-not-worked-around
+context:
+  scaffold_script: fixture.sh
