@@ -76,3 +76,21 @@ class RelinkTest(ScriptTestCase):
         self.assertEqual(result.returncode, 1)
         self.assertFalse(self.exists("railway.log"))
         self.assertTrue(self.exists("cockpit-home/projects/acme-studio/.relink"))
+
+    def test_given_railway_refuses_the_tools_folder_then_the_marker_stays(self):
+        self.install_fake_railway('case $(pwd) in *tools-project) exit 1 ;; esac\nexit 0\n')
+
+        result = self.relink()
+
+        self.assertEqual(result.returncode, 1)
+        self.assertTrue(self.exists("cockpit-home/projects/acme-studio/.relink"))
+
+    def test_given_a_refused_tools_id_then_railway_is_never_run_and_the_marker_stays(self):
+        self.railway_records()
+        self.write("cockpit-home/projects/acme-studio/state.md", APP_STATE.replace(TOOLS_ID, "-x"))
+
+        result = self.relink()
+
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(self.exists("railway.log"))
+        self.assertTrue(self.exists("cockpit-home/projects/acme-studio/.relink"))

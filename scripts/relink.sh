@@ -91,22 +91,31 @@ value_of() {
 }
 
 link_folder() {
-  if ! (cd "$project_directory/$1" && shift && "$railway_bin" link "$@" >/dev/null 2>&1); then
+  if ! (cd "$project_directory/$1" && shift && "$railway_bin" link "$@" </dev/null >/dev/null 2>&1); then
     fail "Railway did not link the folder '$1'. Check that 'railway whoami' answers and that this account is a member of the project, then run this again."
   fi
 }
 
+has_saas=false
+has_tools=false
+
 if [ -d "$project_directory/saas-project" ]; then
+  has_saas=true
   saas_id=$(project_id_of 'SaaS project') || fail "The SaaS project of $state_file has no readable id, so its folder cannot be linked again."
   production=$(value_of 'SaaS project' '- Production environment:') || fail "The production environment of $state_file cannot be read, so the SaaS folder cannot be linked again."
   app_service=$(value_of 'SaaS project' '- App service:') || fail "The app service of $state_file cannot be read, so the SaaS folder cannot be linked again."
-
-  link_folder saas-project -p "$saas_id" -e "$production" -s "$app_service"
 fi
 
 if [ -d "$project_directory/tools-project" ]; then
+  has_tools=true
   tools_id=$(project_id_of 'Tools project') || fail "The tools project of $state_file has no readable id, so its folder cannot be linked again."
+fi
 
+if [ "$has_saas" = true ]; then
+  link_folder saas-project -p "$saas_id" -e "$production" -s "$app_service"
+fi
+
+if [ "$has_tools" = true ]; then
   link_folder tools-project -p "$tools_id" -e "$tools_environment"
 fi
 
