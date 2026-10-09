@@ -379,13 +379,10 @@ def own_entries(project):
 
 
 def recorded_project(recorded):
-    for _, relative in recorded:
-        match = PROJECT_ENTRY.fullmatch(relative)
+    matches = [PROJECT_ENTRY.fullmatch(relative) for _, relative in recorded]
+    projects = {match.group(1) for match in matches if match}
 
-        if match:
-            return match.group(1)
-
-    return None
+    return projects.pop() if len(projects) == 1 else None
 
 
 class Ledger:
@@ -444,10 +441,6 @@ class Ledger:
 
     def undo(self, root):
         trusted, untrusted = self.sorted_entries()
-
-        if untrusted:
-            return False
-
         failed = []
 
         for kind, relative in reversed(trusted):
@@ -457,7 +450,7 @@ class Ledger:
                 failed.append((kind, relative))
 
         failed.reverse()
-        self.replace(failed)
+        self.replace(failed + untrusted)
         return not failed
 
 
@@ -567,10 +560,12 @@ class Migration:
         if self.is_committed():
             raise MigrationError("{} is not a file".format(USER_FILE))
 
+        is_undone = self.ledger.undo(self.root)
+
         if not self.ledger.is_trusted():
             raise MigrationError("the list left by an interrupted update cannot be trusted")
 
-        if not self.ledger.undo(self.root):
+        if not is_undone:
             raise MigrationError("an interrupted update could not be undone")
 
     def roll_back(self):

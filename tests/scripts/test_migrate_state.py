@@ -322,13 +322,52 @@ class MigrateStateTest(ScriptTestCase):
             "backup backups\n",
         )
         before = self.snapshot()
+        before.pop(".migrating")
 
         result = self.migrate()
         rerun = self.migrate()
+        after = self.snapshot()
+        kept = after.pop(".migrating")[2].decode()
 
         self.assertEqual(result.stdout, UNTRUSTED)
         self.assertEqual(rerun.stdout, UNTRUSTED)
-        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(after, before)
+        for line in ("file domain.md\n", "file projects/other-app/state.md\n", "move secrets\n"):
+            self.assertIn(line, kept)
+
+    def test_given_an_unknown_line_in_the_list_of_a_run_cut_dead_then_the_folders_go_back_before_the_refusal(self):
+        for stage in ("built", "renamed"):
+            with self.subTest(stage=stage):
+                home = self.path("unknown-line-" + stage)
+                self.build_state_v1(home)
+                with open(os.path.join(home, "notes.txt"), "w", encoding="utf-8") as handle:
+                    handle.write("mine\n")
+                before = self.snapshot(home)
+
+                self.migrate(home, COCKPIT_MIGRATION_KILL_AT=stage)
+                with open(os.path.join(home, ".migrating"), "a", encoding="utf-8") as handle:
+                    handle.write("file notes.txt\nfile projects/acme-st")
+                result = self.migrate(home)
+                rerun = self.migrate(home)
+                after = without_backups(self.snapshot(home))
+                kept = after.pop(".migrating")[2].decode()
+
+                self.assertEqual(result.stdout, UNTRUSTED)
+                self.assertEqual(rerun.stdout, UNTRUSTED)
+                self.assertEqual(after, before)
+                self.assertEqual(kept, "file notes.txt\n")
+
+    def test_given_a_half_written_last_line_in_the_list_then_the_next_run_still_finishes(self):
+        expected = without_backups(self.snapshot(self.finished_tree()))
+        self.build_state_v1()
+
+        self.migrate(COCKPIT_MIGRATION_KILL_AT="renamed")
+        with open(self.path("cockpit-home/.migrating"), "a", encoding="utf-8") as handle:
+            handle.write("file projects/acme-st")
+        resumed = self.migrate()
+
+        self.assertEqual(resumed.stdout, UPDATED)
+        self.assertEqual(without_backups(self.snapshot()), expected)
 
     def test_given_the_app_got_its_name_after_a_run_cut_dead_then_one_folder_holds_everything(self):
         expected = without_backups(self.snapshot(self.finished_tree()))
