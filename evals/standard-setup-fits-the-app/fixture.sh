@@ -32,3 +32,13 @@ dependencies: git, railway, gh
 ## Tools
 - metabase: template metabase, services metabase and metabase-db, URL https://metabase.example.com, driven by mcp, app data connected
 STATE
+cat > "$HOME/.railway-pilot/schema.md" <<SCHEMA
+# Schema
+
+- studio: a yoga studio that uses the app. Columns: id, name, city, created_at, deleted_at, is_demo.
+- staff: people working in a studio. Columns: id, studio_id, email, role, last_seen_at.
+- class_session: a class a studio schedules. Columns: id, studio_id, title, starts_at, capacity.
+- booking: a customer booking a class. Columns: id, class_session_id, customer_email, created_at, cancelled_at. Holds personal data.
+
+There is no plan, subscription or payment table: studios are invoiced by hand, outside the app.
+SCHEMA

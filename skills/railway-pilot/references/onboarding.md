@@ -113,4 +113,4 @@ Run each check and report in plain words, one line each, what passed and what di
 - Each tool answers at its URL, and its MCP server lists its tools.
 - Each tool connected to the app's data reads a table.
 
-Set `onboarding: complete`. Then give three example requests fitted to their profile and their app, in their words, and offer to start with one.
+Set `onboarding: complete`. Then give three example requests fitted to their profile and their app, in their words, and offer to start with one. With a tool that is still empty, the first example is its standard setup (`standards.md`).

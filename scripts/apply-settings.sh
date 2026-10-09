@@ -10,10 +10,11 @@ fi
 
 settings_file=${CLAUDE_SETTINGS:-$HOME/.claude/settings.json}
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-usage='Usage: apply-settings.sh --marketplace <name> --repo <owner/repo>'
+usage='Usage: apply-settings.sh --marketplace <name> --repo <owner/repo> | apply-settings.sh --remove --marketplace <name>'
 
 marketplace=
 repo=
+mode=apply
 
 fail_usage() {
   printf '%s\n' "$1" >&2
@@ -35,6 +36,12 @@ valid_repo() {
 }
 
 while [ $# -gt 0 ]; do
+  if [ "$1" = --remove ]; then
+    mode=remove
+    shift
+    continue
+  fi
+
   case $1 in
     --marketplace | --repo)
       if [ $# -lt 2 ]; then
@@ -57,7 +64,11 @@ if ! valid_marketplace "$marketplace"; then
   fail_usage "The marketplace name is missing or holds unexpected characters. Use the name written in the plugin marketplace file. $usage"
 fi
 
-if ! valid_repo "$repo"; then
+if [ "$mode" = remove ] && [ -n "$repo" ]; then
+  fail_usage "The option --repo is not used with --remove. $usage"
+fi
+
+if [ "$mode" = apply ] && ! valid_repo "$repo"; then
   fail_usage "The plugin repository is missing or is not written as owner/repo. $usage"
 fi
 
@@ -66,4 +77,4 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-exec python3 "$script_dir/apply_settings.py" "$settings_file" "$script_dir/permissions.json" "$marketplace" "$repo"
+exec python3 "$script_dir/apply_settings.py" "$mode" "$settings_file" "$script_dir/permissions.json" "$marketplace" "$repo"

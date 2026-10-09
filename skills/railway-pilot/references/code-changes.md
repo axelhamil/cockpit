@@ -4,7 +4,9 @@ Changes to the app, made through a pull request. Small presentation changes (wor
 
 The working copy is `~/.railway-pilot/repo/`. `state.md` holds the deployed branch, the test branch if any, and the merge policy.
 
-Nothing is built or run on this Mac: there is no Node and no local server. What proves a change is the repository checks and the test or preview deployment.
+Nothing is built or run on this Mac: there is no Node and no local server. What proves a change is the repository checks and the test or preview deployment, looked at in the Browser pane.
+
+Before changing a screen, open it in the Browser pane on the live app and take a screenshot: it is the "before".
 
 ## 1. Prepare
 
@@ -44,11 +46,11 @@ gh pr checks <number> --watch
 gh pr merge <number> --squash
 ```
 
-Wait for the test deployment (`railway status --json -p <project id> -e <test environment>`, the app service's `latestDeployment.status`), give the user the test URL, and ask if it is what they wanted.
+Wait for the test deployment (`railway status --json -p <project id> -e <test environment>`, the app service's `latestDeployment.status`), open the changed screen at the test URL in the Browser pane, check it yourself against the request, and show it to the user next to the "before". Fix what is off before asking if it is what they wanted.
 
 **No test environment**
 
-Open the pull request against the deployed branch (step 4). If Railway posted a preview URL on the pull request (`gh pr view <number> --comments`), give it to the user. Otherwise describe the change in plain words: which screen, what it said before, what it says now.
+Open the pull request against the deployed branch (step 4). If Railway posted a preview URL on the pull request (`gh pr view <number> --comments`), open the changed screen there in the Browser pane, check it against the request and show it next to the "before". Otherwise describe the change in plain words: which screen, what it said before, what it says now. A screen behind a sign-in: the user signs in once in the pane.
 
 ## 4. Pull request to production
 
@@ -87,9 +89,9 @@ Run `gh pr diff <number>` and sort the pull request from the diff itself, not fr
 gh pr merge <number> --squash --delete-branch
 ```
 
-Follow the deployment: `railway status --json` until `latestDeployment.status` is `SUCCESS`, then `railway logs -s <service> --since 10m --filter "@level:error" --json`.
+Follow the deployment: `railway status --json` until `latestDeployment.status` is `SUCCESS`, `FAILED` or `CRASHED`, 10 minutes at most, then `railway logs -s <service> --since 10m --filter "@level:error" --json`.
 
-- Deployed and quiet: tell the user it is live, add a dated line to `journal.md`.
+- Deployed and quiet: open the changed screen on the live app in the Browser pane, tell the user it is live, add a dated line to `journal.md` with `undo: gh pr revert <number>`.
 - Deployment failed, or new errors appear: undo it right away with `gh pr revert <number>` and merge the revert, then tell the user what happened in one sentence. Add a dated line to `journal.md`.
 
 ## 7. Developer review

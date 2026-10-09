@@ -133,6 +133,8 @@ print_context() {
     printf 'note: the scripts directory of the plugin could not be located\n'
   fi
 
+  printf 'state directory: %s\n' "$state_home"
+
   if [ ! -e "$state_file" ]; then
     printf 'onboarding: absent (no state file yet, onboarding has to run first)\n'
     return 0
@@ -146,7 +148,9 @@ print_context() {
   printf 'state schema version: %s\n' "$(known_schema_version "$(state_value schema_version)")"
   printf 'language: %s\n' "$(known_language "$(state_value language)")"
 
-  case $(state_value onboarding) in
+  onboarding=$(state_value onboarding)
+
+  case $onboarding in
     complete)
       printf 'onboarding: complete\n'
       ;;
@@ -160,6 +164,10 @@ print_context() {
   esac
 
   print_dependencies "$(state_value dependencies)"
+
+  if [ "$onboarding" = complete ] && [ -n "${scripts_dir:-}" ]; then
+    sh "$scripts_dir/health-check.sh" 2>/dev/null || :
+  fi
 }
 
 (print_context) || printf 'note: railway-pilot could not finish its session check, the state may need a repair\n'

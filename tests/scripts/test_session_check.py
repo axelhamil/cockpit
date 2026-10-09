@@ -23,6 +23,7 @@ class SessionCheckTest(ScriptTestCase):
         self.assertIn("onboarding: absent", result.stdout)
         self.assertNotIn("dependency", result.stdout)
         self.assertIn("scripts directory: " + os.path.realpath(SCRIPTS_DIR), result.stdout)
+        self.assertIn("state directory: " + self.home, result.stdout)
 
     def test_given_onboarding_in_progress_then_the_step_and_each_dependency_are_reported(self):
         self.install_command("gh", "", "isolated-bin")
@@ -151,3 +152,19 @@ class SessionCheckTest(ScriptTestCase):
         self.assertIn("plugin version: unknown", without_manifest.stdout)
         self.assertIn("plugin version: 1.4.2", with_manifest.stdout)
         self.assertIn("scripts directory: " + os.path.realpath(os.path.join(plugin_copy, "scripts")), with_manifest.stdout)
+
+    def test_given_onboarding_complete_and_a_crashed_service_then_the_context_carries_the_problem(self):
+        self.env["PATH"] = os.environ["PATH"]
+        self.write("pilot-home/saas-project/.keep", "")
+        self.write_state("---\nschema_version: 1\nlanguage: fr\nonboarding: complete\ndependencies: railway\n---\n")
+        self.install_fake_railway(
+            "echo '"
+            '{"environments":{"edges":[{"node":{"name":"production","serviceInstances":{"edges":'
+            '[{"node":{"serviceName":"web","latestDeployment":{"status":"CRASHED"}}}]}}}]}}'
+            "'\n"
+        )
+
+        result = self.check()
+
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('health: PROBLEM, service "web" in environment "production" is CRASHED', result.stdout)

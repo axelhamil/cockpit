@@ -2,9 +2,11 @@
 
 A Claude Code plugin for non-technical teams whose SaaS runs on Railway. They talk to Claude, and Claude:
 
-- deploys a tool from the Railway template marketplace (Metabase, n8n, Uptime Kuma), connects it to their data, and builds its content;
+- deploys a tool from the Railway template marketplace (Metabase, n8n, Uptime Kuma), connects it to their data, and fills it with a standard setup fitted to their app: steering dashboards, linked sheets per customer, alerts, monitors;
 - makes small changes to the app through a pull request;
-- reports health, logs, costs and backups;
+- reports health, logs, costs and backups in one screen, and says so at the start of a session when a service is down;
+- shows results in the Browser pane of Claude Desktop instead of describing them, and does the clicking in admin screens;
+- undoes the last change on request;
 - hands work to their developer with a file ready to process when a review is the safer route.
 
 It is the team's project and the team decides. Claude does what is asked and reports it in plain words. Nothing is blocked, and it asks only before what cannot be undone. What keeps a way back is the pull request flow and the backups set up during onboarding. Claude signs in to Railway and GitHub with the user's own accounts, and passwords go through the clipboard, never through the conversation.
@@ -38,6 +40,9 @@ What Claude learns about the business stays in `~/.railway-pilot/` on the Mac. P
 ## Commands
 
 - `/railway-pilot:onboard`: add a usage or a tool, or resume the setup
+- `/railway-pilot:status`: how the app is doing, in one screen
+- `/railway-pilot:undo`: go back on the last change
+- `/railway-pilot:repair`: fix the setup on this Mac, or remove railway-pilot
 - `/railway-pilot:review-session`: save what was learned in the conversation
 - `/railway-pilot:report`: send improvement proposals to the plugin maintainer
 

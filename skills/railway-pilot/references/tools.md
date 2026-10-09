@@ -65,14 +65,14 @@ sh $SCRIPTS/database-access.sh --service <postgres service>
 - When it says the database has no public address, create one with the command it gives, wait until `railway status --json` shows the database deployed again, and run it again.
 - Never read the database variables yourself: they contain the password.
 
-Guide the user to the tool's database screen and tell them which field receives which value. They paste the password from the clipboard into the password field. Then test the connection from the tool and set `app data connected` on the tool's line in `state.md`.
+Open the tool's database screen in the Browser pane and fill host, port, database and user yourself. The user only pastes the password from the clipboard into the password field. This database account can also write: never run or save from a tool a query that changes data. Then test the connection from the tool and set `app data connected` on the tool's line in `state.md`.
 
 ## 6. Drive the tool
 
 Order of preference:
 
 1. **The tool's own MCP server**, over OAuth: `claude mcp add --transport http --scope user <name> <url>`. A new MCP server needs a new session: update `state.md` first and ask the user to quit and reopen Claude. Back in the session, check whether the server's tools are available. If it asks for sign-in, tell the user to type `/mcp`, pick the tool and approve in the browser. If the server cannot be connected after two tries, use the REST API.
-2. **The tool's REST API**, with a key the user creates in the tool and copies. Store it without showing it: `mkdir -p ~/.railway-pilot/secrets && pbpaste > ~/.railway-pilot/secrets/<tool>.key && chmod 600 ~/.railway-pilot/secrets/<tool>.key`. Pass it to `curl` as a header file (`-H @<file>`), never by reading it into the conversation.
+2. **The tool's REST API**, with a key the user creates in the tool and copies. Store it without showing it: `mkdir -p ~/.railway-pilot/secrets && { printf '<header name>: '; pbpaste; } > ~/.railway-pilot/secrets/<tool>.key && chmod 600 ~/.railway-pilot/secrets/<tool>.key`, with the header name the tool's documentation gives (`X-API-KEY`, `Authorization: Bearer`). Pass the file to `curl` as a header (`-H @<file>`), never by reading it into the conversation.
 3. **A local MCP server**, last resort, which requires Node.js: `dependencies.md`.
 
 ### Known tools
@@ -88,15 +88,19 @@ Order of preference:
 - A workflow that writes anywhere outside n8n (sends emails, calls an API, writes to a database) is shown to the user in plain words and confirmed before it is activated.
 
 **Uptime Kuma**
-- No official API and no MCP. Deploy and give the address, then describe each click so the user creates the monitors.
+- No official API and no MCP. Deploy, then create the monitors yourself in the Browser pane once the user has signed in there.
 
 A tool not listed here: look for an MCP or API section in its official documentation before deciding. When it works, note in `proposals.md` what was needed so the maintainer can add it here.
 
-## 7. Record
+## 7. Fill it
+
+A tool left empty is not used. As soon as it answers and is connected, propose its standard setup and build it: `standards.md`. Later, keep offering the next missing piece as its "When to offer" section says.
+
+## 8. Record
 
 - `state.md`: tool, template code, service names, URL, how it is driven, whether it is connected to the app's data.
 - `tools.md`: what was built (dashboard, workflow), for what question, and where it lives.
-- `journal.md`: one dated line.
+- `journal.md`: one dated line with its `undo:` (`undo.md`).
 
 ## Removing a tool
 

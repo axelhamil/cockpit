@@ -59,6 +59,8 @@ class ApplySettingsTest(ScriptTestCase):
                 "Bash(sh */scripts/install-gh.sh)",
                 "Bash(sh */scripts/github-login.sh)",
                 "Bash(sh */scripts/session-check.sh)",
+                "Bash(sh */scripts/health-check.sh)",
+                "Bash(sh */scripts/apply-settings.sh *)",
             ],
         )
 
@@ -213,3 +215,48 @@ class ApplySettingsTest(ScriptTestCase):
                 self.assertTrue(result.stderr.strip())
 
         self.assertFalse(self.exists("claude"))
+
+    def test_given_applied_settings_then_remove_takes_back_only_what_the_plugin_added(self):
+        before = {
+            "permissions": {"allow": ["Bash(ls *)", "Bash(git *)"]},
+            "extraKnownMarketplaces": {"other": {"autoUpdate": False}},
+            "model": "opus",
+        }
+        self.write("claude/settings.json", json.dumps(before))
+        self.apply()
+
+        result = self.apply(["--remove", "--marketplace", "railway-pilot"])
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.settings(), before)
+        self.assertFalse(self.exists("claude/settings.json.before-railway-pilot"))
+
+    def test_given_a_marketplace_of_the_same_name_before_the_plugin_then_remove_puts_it_back(self):
+        before = {"extraKnownMarketplaces": {"railway-pilot": {"source": {"source": "directory", "path": "/src"}}}}
+        self.write("claude/settings.json", json.dumps(before))
+        self.apply()
+
+        self.apply(["--remove", "--marketplace", "railway-pilot"])
+
+        self.assertEqual(self.settings(), before)
+
+    def test_given_settings_created_by_the_plugin_then_remove_leaves_no_rule_and_no_backup(self):
+        self.apply()
+
+        result = self.apply(["--remove", "--marketplace", "railway-pilot"])
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.settings(), {})
+        self.assertFalse(self.exists("claude/settings.json.before-railway-pilot"))
+
+    def test_given_no_settings_file_then_remove_creates_nothing(self):
+        result = self.apply(["--remove", "--marketplace", "railway-pilot"])
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.exists("claude/settings.json"))
+
+    def test_given_a_repository_with_remove_then_the_usage_is_shown(self):
+        result = self.apply(["--remove", "--marketplace", "railway-pilot", "--repo", "acme/railway-pilot"])
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Usage", result.stderr)
