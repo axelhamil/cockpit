@@ -52,14 +52,14 @@ Follow `dependencies.md`. Install everything in the plan, verify each, record ve
    Confirm each finding with the user in plain words.
 4. Link a directory to the SaaS project for reading:
    ```
-   mkdir -p ~/.cockpit/saas-project && cd ~/.cockpit/saas-project && railway link -p <project id> -e <production environment> -s <app service>
+   mkdir -p $PROJECT/saas-project && cd $PROJECT/saas-project && railway link -p <project id> -e <production environment> -s <app service>
    ```
 5. Record project, environments, services, repository, deployed branch and test branch in `state.md`.
 6. They answered "no" or "not sure" about GitHub at step 1: ask their GitHub username if the profile has none, then give the ready message with the repository name ("Could you give <username> write access to <owner>/<repo>?"). Otherwise say nothing.
 
 ## Step 5: backups and spending alert
 
-From `~/.cockpit/saas-project/`:
+From `$PROJECT/saas-project/`:
 
 ```
 railway postgres pitr status -s <postgres service> --json
@@ -103,7 +103,7 @@ Only if the GitHub CLI is in the plan.
 2. Tell the user first, because the command waits for them: a GitHub page opens in a few seconds, the code is already copied, they sign in if asked, paste the code, approve, and tell you when it is done. Then run `sh $SCRIPTS/github-login.sh` in the background (`run_in_background`), since a foreground command is cut after 2 minutes. It ends when they have approved. The page did not open: `open https://github.com/login/device`. The code expired: run it again.
 3. The app's repository belongs to an organisation the sign-in cannot see: the user asks an owner to approve "GitHub CLI" in the organisation settings, or the owner signs in instead. Record it in `state.md` and move on.
 4. Check: `gh repo view <owner>/<repo> --json name,defaultBranchRef,viewerPermission`. Not found: their account is not invited on that repository. `viewerPermission` is `READ` or `TRIAGE` while changes to the app are in the profile: they can look but not change. In both cases give the message of step 4, record it, clone anyway when the repository is readable, and skip items 7 and 8 and the test issue of step 10 until access is granted.
-5. `gh repo clone <owner>/<repo> ~/.cockpit/repo`.
+5. `gh repo clone <owner>/<repo> $PROJECT/repo`.
 6. Set the commit identity in the clone with the user's name and email from the profile: `git config user.name "<name>"` and `git config user.email "<email>"`.
 7. `gh label create via-claude --description "Opened with cockpit" --repo <owner>/<repo>` (ignore "already exists").
 8. Ask the merge policy, if changes to the app are in the profile:
@@ -118,7 +118,7 @@ For each tool of the plan, in the order the user gave: `tools.md`, from search t
 
 Fill the knowledge files. Read before asking.
 
-- From `~/.cockpit/repo/`: the stack, where screens and texts live, migrations or model definitions. Write `codebase.md` (where things are, conventions, files that always need a developer: authentication, payment, migrations, configuration) and a first `schema.md` (what each table is for, which tables hold personal or sensitive data).
+- From `$PROJECT/repo/`: the stack, where screens and texts live, migrations or model definitions. Write `codebase.md` (where things are, conventions, files that always need a developer: authentication, payment, migrations, configuration) and a first `schema.md` (what each table is for, which tables hold personal or sensitive data).
 - Ask 5 to 10 questions the code cannot answer, as choices when possible: what their customers are called, what the main statuses mean, which figures they follow every week, what a typical support request looks like.
 - Show a short summary of everything you understood, from the code and from their answers, and get it validated before writing any of the four files.
 

@@ -7,10 +7,10 @@ Something stopped working, a `health: not checked` line, a missing dependency, o
 | Check | Broken when | Fix |
 |---|---|---|
 | `railway whoami` | error or "Unauthorized" | `railway login` (tell the user first: a browser tab opens, they approve), in the background |
-| `railway status --json` in `~/.cockpit/saas-project/` | no linked project | `railway link -p <project id> -e <environment>` with the values of `state.md` |
-| Same in `~/.cockpit/tools-project/`, when a tool is recorded as `project tools` | no linked project | same, with the tools project |
+| `railway status --json` in `$PROJECT/saas-project/` | no linked project | `railway link -p <project id> -e <environment>` with the values of `state.md` |
+| Same in `$PROJECT/tools-project/`, when a tool is recorded as `project tools` | no linked project | same, with the tools project |
 | `gh auth status --hostname github.com`, when GitHub is in the plan | not logged in | `onboarding.md`, GitHub step |
-| `git -C ~/.cockpit/repo status` | no clone, or not a repository | `gh repo clone <owner>/<repo> ~/.cockpit/repo` |
+| `git -C $PROJECT/repo status` | no clone, or not a repository | `gh repo clone <owner>/<repo> $PROJECT/repo` |
 | Dependencies of the session context | `missing` | `dependencies.md` |
 | The Railway CLI is older than 5.44 (`railway --version`) | commands unknown | install command of `dependencies.md` |
 | Permission pop-ups are back | settings were reset | `sh $SCRIPTS/apply-settings.sh --marketplace cockpit --repo <owner>/cockpit` |
