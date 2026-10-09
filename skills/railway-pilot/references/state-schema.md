@@ -14,6 +14,7 @@ schema_version: 1
 language: fr
 onboarding: in-progress
 onboarding_step: github
+plugin_version: 1.3.0
 dependencies: git, railway, gh
 ---
 ```
@@ -21,6 +22,7 @@ dependencies: git, railway, gh
 - `language`: language code of the user.
 - `onboarding`: `in-progress` or `complete`.
 - `onboarding_step`: the next step to run, not the last one finished, one of `profile`, `plan`, `dependencies`, `railway`, `backups`, `settings`, `github`, `tools`, `discovery`, `check`.
+- `plugin_version`: the plugin version the user was last told about, from the session context. Written at the end of onboarding and after each "what is new", on its own line after `onboarding_step`.
 - `dependencies`: command names of the plan, comma separated: `git`, `railway`, `gh`, `node`.
 
 The body below the header uses these sections, in this order. Leave a section empty until it is known.
@@ -46,6 +48,7 @@ The body below the header uses these sections, in this order. Leave a section em
 - Postgres service: <name>
 - Test environment: <name>, branch <branch>, URL <url> | none
 - Backups: schedule <daily, weekly>, first backup <date>
+- Spending alert: <amount> USD per month | none
 
 ## Code
 - Merge policy: ask-me | developer-reviews

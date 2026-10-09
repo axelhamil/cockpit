@@ -61,7 +61,7 @@ Checked on 2026-10-09 on Linux. Every line comes from a real `--help` output, a 
 - Filter syntax: `@level:error`, `@httpStatus:>=400`, `@totalDuration:>1000`, `-@method:OPTIONS`, `AND`, `OR`, parentheses, ranges `200..299`.
 - `railway metrics [-s] [-a|--all] [-e] [-p] [-S|--since (default 1h)] [-U|--until] [--json] [--cpu] [--memory] [--network] [--volume] [--http] [--raw] [-w|--watch] [--method] [--path]`. `--watch` is a TUI. `--method` and `--path` need `--http`.
 - `railway usage [--workspace <W>] [--period current|previous|YYYY-MM] [--json]`; subcommands `usage projects [--project <P>] [--period] [--limit N] [--workspace] [--json]` and `usage limit status|set|update|remove`.
-- `usage limit set --target agent|workspace --soft <USD> --hard <USD>`; `usage limit update --soft N`; `usage limit remove [-y]`. `usage projects` prints the top 25, `--json` returns all unless `--limit`.
+- `usage limit set --target agent|workspace <--soft <USD>|--hard <USD>>` (one of the two is enough; `--soft` is "Email alert in dollars", `--hard` is "Hard limit in dollars"), `usage limit status [--target] [--workspace] [--json]`; `usage limit update --soft N`; `usage limit remove [-y]`. `usage projects` prints the top 25, `--json` returns all unless `--limit`.
 
 ### Postgres
 
@@ -254,3 +254,4 @@ FAIL if <what a wrong or missing response looks like>.
 - `claude mcp remove <name> [-s scope]`, `claude plugin uninstall <plugin>`, `claude plugin marketplace remove <name>`: help read on 2.1.295, not run from inside a plugin session.
 - Dashboard Rollback of an older deployment driven through the Browser pane; Metabase click behaviour and models created through its MCP server.
 - `gh auth status --hostname github.com`, `gh auth logout --hostname github.com`, `gh repo clone <owner>/<repo> <dir>`, `gh pr close <number> --delete-branch`: used in the procedures, not run.
+- `railway usage limit set --soft` effect on a real workspace and who may set it; JSON shape of `usage limit status`; `gh repo view --json viewerPermission` values on a repository the account can only read.

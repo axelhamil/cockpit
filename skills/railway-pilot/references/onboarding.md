@@ -24,6 +24,10 @@ Then, in one or two calls:
 
 Record the answers under `profile` in `state.md`.
 
+**Access, right away.** Two invitations can block the setup later, and they depend on someone else. In the same call as the developer question, ask whether their own account is already a member of the app's project on Railway (or owns it) and, when changes to the app or understanding problems were picked, whether it has write access to the app's repository on GitHub.
+
+"No" or "not sure" for Railway: write now a short message they can send to their developer or to the owner, ready to copy, in their language ("Could you add <their email> as a member of our project on Railway?"), and carry on: the install runs while the invitation arrives. GitHub is handled at step 4, once the repository is known.
+
 ## Step 2: plan
 
 Derive from the profile:
@@ -40,7 +44,7 @@ Follow `dependencies.md`. Install everything in the plan, verify each, record ve
 ## Step 4: Railway
 
 1. `railway login`, then `railway whoami`.
-2. `railway list --json`. Ask which project is their app (AskUserQuestion with the project names). An empty list means their Railway account has not been invited to the project: tell them to ask whoever owns it for an invitation, record it, and stop this step.
+2. `railway list --json`. Ask which project is their app (AskUserQuestion with the project names). An empty list means their Railway account has not been invited to the project: give the Railway message of step 1 again, record it, and stop here: the rest needs the project. Resume at this step when they say the invitation arrived.
 3. `railway status --json -p <project id> -e <environment>` for each environment of that project. From `serviceInstances`, find:
    - the Postgres service (its `source.image` contains `postgres`);
    - the app service (it has `source.repo`), its repository and its branch in `latestDeployment.meta.branch`. An app with no `source.repo` is deployed from an image or from a computer: ask the developer contact which repository and branch hold the code, and record that changes to the app are not available until this is known;
@@ -51,8 +55,9 @@ Follow `dependencies.md`. Install everything in the plan, verify each, record ve
    mkdir -p ~/.railway-pilot/saas-project && cd ~/.railway-pilot/saas-project && railway link -p <project id> -e <production environment> -s <app service>
    ```
 5. Record project, environments, services, repository, deployed branch and test branch in `state.md`.
+6. They answered "no" or "not sure" about GitHub at step 1: ask their GitHub username if the profile has none, then give the ready message with the repository name ("Could you give <username> write access to <owner>/<repo>?"). Otherwise say nothing.
 
-## Step 5: backups
+## Step 5: backups and spending alert
 
 From `~/.railway-pilot/saas-project/`:
 
@@ -65,6 +70,22 @@ railway postgres pitr schedule list -s <postgres service> --json
 - No schedule: turn it on with `railway postgres pitr schedule set --daily --weekly -s <postgres service>` and tell the user their database is now backed up daily and weekly, billed as storage.
 - Then create one now, which changes nothing in the database: `railway postgres pitr backup create --name before-railway-pilot -s <postgres service>`.
 - A command fails because the plan or the image does not support backups: record it and tell the user plainly that their database has no backup and what that means. Continue the onboarding.
+
+Then the spending alert, so a tool that costs more than expected is never a surprise:
+
+```
+railway usage limit status --target workspace --json
+railway usage --json
+railway usage --period previous --json
+```
+
+- An alert already exists: record its amount and move on.
+- None: one AskUserQuestion, an email from Railway when the month passes an amount. Options from last month's total: about one and a half times, rounded (recommended), twice, no alert. No previous month, or the total cannot be read from the answer even without `--json`: 20, 50 or 100 USD. Then `railway usage limit set --target workspace --soft <amount>`.
+- Several workspaces: add `--workspace "<name>"`, the one that owns the app's project.
+- Never pass `--hard`: a hard limit stops the app when it is reached.
+- Refused because their account does not manage billing: record it, say who can set it, move on.
+
+Record `Spending alert` in `state.md`, `none` when they declined.
 
 ## Step 6: settings
 
@@ -81,7 +102,7 @@ Only if the GitHub CLI is in the plan.
 1. `gh auth status --hostname github.com` already succeeds: go to item 4.
 2. Tell the user first, because the command waits for them: a GitHub page opens in a few seconds, the code is already copied, they sign in if asked, paste the code, approve, and tell you when it is done. Then run `sh $SCRIPTS/github-login.sh` in the background (`run_in_background`), since a foreground command is cut after 2 minutes. It ends when they have approved. The page did not open: `open https://github.com/login/device`. The code expired: run it again.
 3. The app's repository belongs to an organisation the sign-in cannot see: the user asks an owner to approve "GitHub CLI" in the organisation settings, or the owner signs in instead. Record it in `state.md` and move on.
-4. Check: `gh repo view <owner>/<repo> --json name,defaultBranchRef`.
+4. Check: `gh repo view <owner>/<repo> --json name,defaultBranchRef,viewerPermission`. Not found: their account is not invited on that repository. `viewerPermission` is `READ` or `TRIAGE` while changes to the app are in the profile: they can look but not change. In both cases give the message of step 4, record it, clone anyway when the repository is readable, and skip items 7 and 8 and the test issue of step 10 until access is granted.
 5. `gh repo clone <owner>/<repo> ~/.railway-pilot/repo`.
 6. Set the commit identity in the clone with the user's name and email from the profile: `git config user.name "<name>"` and `git config user.email "<email>"`.
 7. `gh label create via-claude --description "Opened with railway-pilot" --repo <owner>/<repo>` (ignore "already exists").
@@ -113,4 +134,4 @@ Run each check and report in plain words, one line each, what passed and what di
 - Each tool answers at its URL, and its MCP server lists its tools.
 - Each tool connected to the app's data reads a table.
 
-Set `onboarding: complete`. Then give three example requests fitted to their profile and their app, in their words, and offer to start with one. With a tool that is still empty, the first example is its standard setup (`standards.md`).
+Set `onboarding: complete` and `plugin_version` to the version of the session context. Then give three example requests fitted to their profile and their app, in their words, and offer to start with one. With a tool that is still empty, the first example is its standard setup (`standards.md`).
