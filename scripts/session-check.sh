@@ -271,6 +271,7 @@ find_project() {
   project_status=0
   project_directory=
   project_slug=
+  legacy_layout=0
 
   if [ -z "${scripts_dir:-}" ]; then
     project_status=1
@@ -284,7 +285,10 @@ find_project() {
   fi
 
   case $project_directory in
-    "$state_home") project_slug=legacy ;;
+    "$state_home")
+      project_slug=legacy
+      legacy_layout=1
+      ;;
     "$state_home"/projects/*) project_slug=$(known_slug "${project_directory#"$state_home"/projects/}") ;;
     *) project_slug=unknown ;;
   esac
@@ -301,7 +305,7 @@ refresh_links() {
     return 0
   fi
 
-  if [ "$project_slug" != legacy ]; then
+  if [ "$legacy_layout" = 0 ]; then
     if run_within "$relink_wait_seconds" relink.sh --project "$project_slug" >/dev/null 2>&1 && [ ! -e "$relink_marker" ]; then
       return 0
     fi

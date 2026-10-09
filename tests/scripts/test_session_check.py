@@ -347,6 +347,34 @@ class SessionCheckLayoutTest(ScriptTestCase):
             ["link " + app + "/saas-project", "link " + app + "/tools-project", "status " + app + "/saas-project"],
         )
 
+    def test_given_a_version_2_app_named_legacy_then_its_links_are_rebuilt_like_any_other_app(self):
+        self.write_v2_state("legacy")
+        self.write("cockpit-home/projects/legacy/saas-project/.keep", "")
+        self.write("cockpit-home/projects/legacy/.relink", "")
+        self.write(
+            "cockpit-home/projects/legacy/state.md",
+            "---\nprovider: railway\nonboarding: complete\n---\n\n## SaaS project\n"
+            "- Project: Legacy (11111111-1111-1111-1111-111111111111)\n"
+            "- Production environment: production\n- App service: web\n",
+        )
+        log = self.path("railway.log")
+        self.install_fake_railway(
+            'echo "$1 $(pwd)" >>"' + log + '"\nif [ "$1" = status ]; then echo \'' + CRASHED_STATUS + "'; fi\n"
+        )
+
+        result = self.check()
+        lines = result.stdout.splitlines()
+        app = os.path.realpath(self.home) + "/projects/legacy"
+
+        self.assert_usable(result)
+        self.assertIn("active project: legacy", lines)
+        self.assertIn("project directory: " + self.home + "/projects/legacy", lines)
+        self.assertNotIn(LINKS_LINE, lines)
+        self.assertIn('health: PROBLEM, service "web" in environment "production" is CRASHED', lines)
+        self.assertFalse(self.exists("cockpit-home/projects/legacy/.relink"))
+        with open(log, encoding="utf-8") as handle:
+            self.assertEqual(handle.read().splitlines(), ["link " + app + "/saas-project", "status " + app + "/saas-project"])
+
     def test_given_a_railway_that_never_answers_the_relink_then_it_is_stopped_and_the_links_stay_to_refresh(self):
         self.write_v2_state("acme-studio")
         self.write("cockpit-home/projects/acme-studio/saas-project/.keep", "")
