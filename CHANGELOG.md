@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/axelhamil/railway-pilot/compare/v1.0.1...v1.1.0) (2026-10-09)
+
+
+### Features
+
+* let the client act on their project without blocks or ceremony ([616a9b1](https://github.com/axelhamil/railway-pilot/commit/616a9b192eb563c03afa261dc04b5fce7fd85869))
+
 ## [1.0.1](https://github.com/axelhamil/railway-pilot/compare/v1.0.0...v1.0.1) (2026-10-09)
 
 
