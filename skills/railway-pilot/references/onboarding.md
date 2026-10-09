@@ -78,16 +78,9 @@ sh $SCRIPTS/apply-settings.sh --marketplace railway-pilot --repo <owner>/railway
 
 Only if the GitHub CLI is in the plan.
 
-1. Open the token page for the user: `open "https://github.com/settings/personal-access-tokens/new"`.
-2. Guide the form:
-   - Name: `railway-pilot`. Expiration: 1 year.
-   - Resource owner: the account or organisation that owns the app's repository.
-   - Repository access: Only select repositories, then the app's repository alone.
-   - Repository permissions: Contents, Read and write; Pull requests, Read and write; Issues, Read and write; Commit statuses, Read-only; Actions, Read-only. Metadata is added automatically.
-   - Without changes to the app in the profile: Contents and Pull requests stay Read-only.
-   - Generate, then click the copy button. Tell the user not to paste it anywhere.
-   - The repository belongs to an organisation that requires approval: the token stays pending until an owner approves it. Record it and move on.
-3. `sh $SCRIPTS/github-login.sh`. It reads the token from the clipboard and clears the clipboard.
+1. `gh auth status --hostname github.com` already succeeds: go to item 4.
+2. Tell the user first, because the command waits for them: a GitHub page opens in a few seconds, the code is already copied, they sign in if asked, paste the code, approve, and tell you when it is done. Then run `sh $SCRIPTS/github-login.sh` in the background (`run_in_background`), since a foreground command is cut after 2 minutes. It ends when they have approved. The page did not open: `open https://github.com/login/device`. The code expired: run it again.
+3. The app's repository belongs to an organisation the sign-in cannot see: the user asks an owner to approve "GitHub CLI" in the organisation settings, or the owner signs in instead. Record it in `state.md` and move on.
 4. Check: `gh repo view <owner>/<repo> --json name,defaultBranchRef`.
 5. `gh repo clone <owner>/<repo> ~/.railway-pilot/repo`.
 6. Set the commit identity in the clone with the user's name and email from the profile: `git config user.name "<name>"` and `git config user.email "<email>"`.
@@ -118,6 +111,6 @@ Run each check and report in plain words, one line each, what passed and what di
 - A backup exists and a schedule is set.
 - With GitHub: `gh repo view` answers; create then close a test issue labelled `via-claude`.
 - Each tool answers at its URL, and its MCP server lists its tools.
-- Each database role refuses a write: ask the tool to run `CREATE TABLE railway_pilot_check (id int)` and expect an error.
+- Each tool connected to the app's data reads a table.
 
 Set `onboarding: complete`. Then give three example requests fitted to their profile and their app, in their words, and offer to start with one.

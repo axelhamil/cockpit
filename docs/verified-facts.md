@@ -225,6 +225,7 @@ FAIL if <what a wrong or missing response looks like>.
 - `gh pr merge [<number>|<url>|<branch>] [--admin] [-A|--author-email] [--auto] [-b|--body] [-F|--body-file] [-d|--delete-branch] [--disable-auto] [--match-head-commit <SHA>] [-m|--merge] [-r|--rebase] [-s|--squash] [-t|--subject] [-R]`. With a merge queue no strategy is needed; `--admin` bypasses requirements and the queue.
 - `gh pr` subcommands: `create list status checkout checks close comment diff edit lock merge ready reopen revert review unlock update-branch view`.
 - `gh auth login [-c|--clipboard] [-p|--git-protocol ssh|https] [-h|--hostname] [--insecure-storage] [-s|--scopes] [--skip-ssh-key] [-w|--web] [--with-token]`. `--with-token` reads the token on stdin; help says it expects a classic PAT (`repo`, `read:org`, `gist`) and recommends `GH_TOKEN` for fine-grained tokens.
+- `gh auth login --hostname github.com --git-protocol https --web` without a terminal (stdin closed, gh 2.101.0 on Linux): prints `One-time code (XXXX-XXXX) copied to clipboard` and `Open this URL to continue in your web browser: https://github.com/login/device`, does not wait for Enter, does not open the browser, then polls until approval.
 - `gh auth setup-git [-h|--hostname <host>] [-f|--force]`: sets gh as git credential helper for all authenticated hosts; fails when none is authenticated; `--force` needs `--hostname`.
 - `gh api <endpoint> [-X|--method M] [-f|--raw-field k=v] [-F|--field k=v] [--input <file|->] [-H|--header] [--hostname] [-i|--include] [-q|--jq] [--paginate] [--slurp] [-p|--preview] [--cache] [--silent] [-t|--template] [--verbose]`.
 - Default method is GET, but POST as soon as any `-f`, `-F` or `--input` parameter is added. `--method GET` keeps fields as a query string. `graphql` is an endpoint (always POST in practice with `-f query=...`).
@@ -246,5 +247,5 @@ FAIL if <what a wrong or missing response looks like>.
 - Hook exec form with `"args": []` and a script path in `command`: needs the executable bit; not run in a live session. Hook behaviour in Claude Desktop Code tab on macOS.
 - `autoUpdate` honoured when written to `~/.claude/settings.json` by a script (docs list "Any file" scope and the first-priority rule, no run on a Mac).
 - `source: "."` and `"./"` resolved on a real `marketplace add owner/repo` install from GitHub (only local `validate` was run).
-- `gh auth login --with-token` with a fine-grained token (scope check), `gh auth setup-git` then `git push` over HTTPS with that token, `gh api` GET-only guard against `--input` without `-X`.
+- `gh auth login --web --clipboard` started from the Code tab without a terminal (code copied, sign-in completes, command returns), then `gh auth setup-git` and `git push` over HTTPS.
 - Railway PR previews, test environment detection by branch, Metabase and n8n instance MCP availability, Gatekeeper behaviour for the `gh` zip binary, `xcode-select --install` polling.

@@ -1,18 +1,17 @@
 import os
 import shlex
+import time
 
 from support import ScriptTestCase
 
-TOKEN = "github_pat_11SECRETSECRETSECRET"
-
 FAKE_GH = """
 printf '%s\\n' "$*" >>"$FAKE_GH_LOG"
+if [ "$2" = login ] && [ -n "${FAKE_GH_LOGIN_FAILS:-}" ]; then
+  echo "error: authorization expired" >&2
+  exit 1
+fi
 if [ "$2" = login ]; then
-  cat >"$FAKE_GH_STDIN"
-  if [ -n "${FAKE_GH_LOGIN_FAILS:-}" ]; then
-    echo "error validating token: HTTP 401: Bad credentials" >&2
-    exit 1
-  fi
+  sleep 1
 fi
 """
 
@@ -22,66 +21,53 @@ class GithubLoginTest(ScriptTestCase):
         super().setUp()
         self.env["GH_BIN"] = self.install_command("gh", FAKE_GH)
         self.env["FAKE_GH_LOG"] = self.path("gh.log")
-        self.env["FAKE_GH_STDIN"] = self.path("gh.stdin")
-        self.env["RP_PASTE"] = "cat " + shlex.quote(self.write("clipboard", TOKEN + "\n"))
-        self.env["RP_CLEAR_CLIPBOARD"] = "cat > " + shlex.quote(self.path("clipboard"))
-
-    def login(self):
-        return self.run_script("github-login.sh")
+        self.env["RP_OPEN"] = "echo >> " + shlex.quote(self.path("opened"))
+        self.env["RP_OPEN_DELAY"] = "0"
 
     def gh_calls(self):
         return self.read("gh.log").splitlines() if self.exists("gh.log") else []
 
-    def test_given_a_token_on_the_clipboard_then_gh_receives_it_on_stdin_and_the_clipboard_is_emptied(self):
-        result = self.login()
+    def test_given_the_user_approves_then_gh_signs_in_over_https_and_git_is_set_up(self):
+        result = self.run_script("github-login.sh")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.read("gh.stdin"), TOKEN)
         self.assertEqual(
             self.gh_calls(),
-            ["auth login --with-token --hostname github.com --git-protocol https", "auth setup-git --hostname github.com", "auth status --hostname github.com"],
+            [
+                "auth login --hostname github.com --git-protocol https --web --clipboard",
+                "auth setup-git --hostname github.com",
+                "auth status --hostname github.com",
+            ],
         )
-        self.assertEqual(self.read("clipboard"), "")
-        self.assertNotIn(TOKEN, result.stdout + result.stderr)
-        self.assertNotIn(TOKEN, self.read("gh.log"))
+        self.assertIn("https://github.com/login/device", self.read("opened"))
 
-    def test_given_github_refuses_the_token_then_the_clipboard_is_still_emptied_and_the_message_is_readable(self):
+    def test_given_the_sign_in_does_not_finish_then_git_is_not_set_up_and_the_message_says_to_retry(self):
         self.env["FAKE_GH_LOGIN_FAILS"] = "1"
 
-        result = self.login()
+        result = self.run_script("github-login.sh")
 
         self.assertEqual(result.returncode, 1)
-        self.assertEqual(self.read("clipboard"), "")
-        self.assertIn("token", result.stderr)
-        self.assertIn("Bad credentials", result.stderr)
-        self.assertNotIn(TOKEN, result.stdout + result.stderr)
-        self.assertEqual(self.gh_calls(), ["auth login --with-token --hostname github.com --git-protocol https"])
+        self.assertIn("Retry", result.stderr)
+        self.assertEqual(len(self.gh_calls()), 1)
 
-    def test_given_something_else_on_the_clipboard_then_it_is_left_alone_and_gh_is_not_called(self):
-        self.write("clipboard", "my shopping list")
+    def test_given_the_sign_in_fails_at_once_then_the_page_is_not_opened(self):
+        self.env["FAKE_GH_LOGIN_FAILS"] = "1"
+        self.env["RP_OPEN_DELAY"] = "1"
 
-        result = self.login()
+        self.run_script("github-login.sh")
+        time.sleep(1.5)
 
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("token", result.stderr)
-        self.assertEqual(self.read("clipboard"), "my shopping list")
-        self.assertNotIn("shopping", result.stdout + result.stderr)
-        self.assertEqual(self.gh_calls(), [])
+        self.assertFalse(self.exists("opened"))
 
-    def test_given_overrides_without_the_test_switch_then_the_real_commands_are_used(self):
+    def test_given_overrides_without_the_test_switch_then_the_real_gh_is_used(self):
         del self.env["RP_TEST"]
-        self.install_command("pbpaste", "printf '%s' \"$REAL_TOKEN\"\n", "path-bin")
-        self.install_command("pbcopy", 'cat >"$REAL_CLEARED"\n', "path-bin")
-        self.install_command("gh", 'printf \'%s\\n\' "$*" >>"$REAL_GH_LOG"\ncat >/dev/null\n', "path-bin")
+        self.install_command("open", "exit 0\n", "path-bin")
+        self.install_command("gh", 'printf \'%s\\n\' "$*" >>"$REAL_GH_LOG"\nif [ "$2" = login ]; then sleep 4; fi\n', "path-bin")
         self.env["PATH"] = self.path("path-bin") + os.pathsep + self.env["PATH"]
-        self.env["REAL_TOKEN"] = "github_pat_22REALREALREAL"
-        self.env["REAL_CLEARED"] = self.path("real-cleared")
         self.env["REAL_GH_LOG"] = self.path("real-gh.log")
 
-        result = self.login()
+        result = self.run_script("github-login.sh")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.gh_calls(), [])
         self.assertEqual(len(self.read("real-gh.log").splitlines()), 3)
-        self.assertEqual(self.read("real-cleared"), "")
-        self.assertEqual(self.read("clipboard"), TOKEN + "\n")

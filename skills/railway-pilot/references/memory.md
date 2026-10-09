@@ -12,9 +12,9 @@ What Claude learns at this client lives in `~/.railway-pilot/`. The plugin direc
 | A dashboard, workflow or saved question Claude built and the client validated | `tools.md` |
 | How the client wants answers, which figures they follow | `preferences.md` |
 
-Anything that changed something (deployment, merge, role, escalation) also gets a dated line in `journal.md`.
+Anything that changed something (deployment, merge, escalation) also gets a dated line in `journal.md`.
 
-Facts about what was just done (a tool deployed, a role created, a pull request merged) are recorded in `state.md` and `journal.md` right away.
+Facts about what was just done (a tool deployed, a tool connected to the data, a pull request merged) are recorded in `state.md` and `journal.md` right away.
 
 ## Procedure
 

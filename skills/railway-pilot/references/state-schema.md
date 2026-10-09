@@ -29,6 +29,7 @@ The body below the header uses these sections, in this order. Leave a section em
 ## Profile
 - Usages: tools, app changes, health, diagnosis
 - Tools wanted: metabase (reads app data), n8n
+- User: <name>, <email>
 - Developer: <name>, <github handle or email>, channel: github | email | none
 
 ## Plan
@@ -54,7 +55,7 @@ The body below the header uses these sections, in this order. Leave a section em
 - Project: <name> (<id>)
 
 ## Tools
-- <tool>: template <code>, services <names>, URL <url>, driven by <mcp | api | user>, database role <tool>_read | none
+- <tool>: template <code>, services <names>, URL <url>, driven by <mcp | api | user>, app data <connected | none>
 
 ## Open escalations
 - <date>: <subject>, <link>
@@ -69,7 +70,7 @@ The body below the header uses these sections, in this order. Leave a section em
 | `codebase.md` | Stack, where things live, conventions, files that always need a developer | user's |
 | `tools.md` | What was built in each tool, for which question | user's |
 | `preferences.md` | Answer format, figures followed, habits | user's |
-| `journal.md` | One dated line per change, merge, role, escalation, memory write | user's |
+| `journal.md` | One dated line per change, merge, escalation, memory write | user's |
 | `proposals.md` | Changes wanted in the plugin: date, what happened, what should change, why | English |
 
 Managed by the scripts and by onboarding, never edited by hand: the directories `saas-project/` (linked to the SaaS project, for reading), `tools-project/` (linked to the tools project), `repo/` (clone of the app), `secrets/` (API keys of tools, mode 600), and the file `report.txt`.
