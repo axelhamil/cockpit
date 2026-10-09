@@ -25,7 +25,7 @@ dependencies: git, railway, gh
 - `plugin_version`: the plugin version the user was last told about, from the session context. Written at the end of onboarding and after each "what is new", on its own line after `onboarding_step`.
 - `dependencies`: command names of the plan, comma separated: `git`, `railway`, `gh`, `node`.
 
-The body below the header uses these sections, in this order. Leave a section empty until it is known.
+The body below the header uses these sections, in this order. Leave a section empty until it is known. A tool line without `project` means `tools`.
 
 ```
 ## Profile
@@ -58,7 +58,7 @@ The body below the header uses these sections, in this order. Leave a section em
 - Project: <name> (<id>)
 
 ## Tools
-- <tool>: template <code>, services <names>, URL <url>, driven by <mcp | api | user>, app data <connected | none>
+- <tool>: project <tools | app>, template <code>, services <names>, URL <url>, driven by <mcp | api | user>, app data <connected | none>
 
 ## Open escalations
 - <date>: <subject>, <link>

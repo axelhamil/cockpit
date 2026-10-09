@@ -12,10 +12,10 @@ def variables(payload):
 
 
 def main():
-    clipboard_command = sys.argv[1]
+    clipboard_command, variable_name = sys.argv[1:3]
 
     try:
-        public_url = variables(json.load(sys.stdin)).get("DATABASE_PUBLIC_URL")
+        public_url = variables(json.load(sys.stdin)).get(variable_name)
     except (AttributeError, TypeError, ValueError):
         sys.exit(4)
 

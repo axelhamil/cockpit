@@ -22,7 +22,7 @@ Undoing is ordinary work: do it, then say what is back to how it was. The except
 | A dashboard, question or workflow built in a tool | Archive it in the tool (not delete), through its MCP server or its screen |
 | A backup schedule changed | `railway postgres pitr schedule set` with the previous choice |
 | A fact saved in memory | Remove or correct it in the state file |
-| A tool deployed (ask once: its content is lost) | `railway service delete -s <service> -y` for each of its services |
+| A tool deployed (ask once: its content is lost) | `railway service delete -s <service> -y` for each of its services, from the project its line in `state.md` names |
 | Data changed or deleted in the database (ask once: everything since the backup is lost) | Restore the backup made before the change: `escalation.md` first unless they insist |
 
 ## What cannot be undone

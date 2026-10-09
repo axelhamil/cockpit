@@ -30,7 +30,7 @@ dependencies: git, railway, gh
 - Project: acme tools (22222222-2222-2222-2222-222222222222)
 
 ## Tools
-- metabase: template metabase, services metabase and metabase-db, URL https://metabase.example.com, driven by mcp, app data connected
+- metabase: project tools, template metabase, services metabase and metabase-db, URL https://metabase.example.com, driven by mcp, app data connected
 STATE
 cat > "$HOME/.railway-pilot/journal.md" <<JOURNAL
 - 2026-10-07: deployed metabase in the tools project, undo: delete services metabase and metabase-db (content lost)

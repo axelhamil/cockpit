@@ -15,11 +15,34 @@ fail() {
   exit "${2:-1}"
 }
 
-if [ "$#" -ne 2 ] || [ "$1" != --service ] || [ -z "$2" ]; then
-  fail "Usage: database-access.sh --service <postgres service>" 2
-fi
+usage='Usage: database-access.sh --service <postgres service> [--private]'
+variable_name=DATABASE_PUBLIC_URL
+service=
 
-service=$2
+while [ "$#" -gt 0 ]; do
+  case $1 in
+    --private)
+      variable_name=DATABASE_URL
+      shift
+      ;;
+    --service)
+      if [ "$#" -lt 2 ]; then
+        fail "$usage" 2
+      fi
+
+      service=$2
+      shift 2
+      ;;
+    *)
+      fail "$usage" 2
+      ;;
+  esac
+done
+
+case $service in
+  '' | -*) fail "$usage" 2 ;;
+esac
+
 saas_dir=$state_home/saas-project
 
 if [ ! -d "$saas_dir" ]; then
@@ -31,13 +54,17 @@ if ! variables=$(cd "$saas_dir" && "$railway_bin" variable list -s "$service" --
 fi
 
 status=0
-printf '%s' "$variables" | python3 "$script_dir/database_access.py" "$clipboard_command" || status=$?
+printf '%s' "$variables" | python3 "$script_dir/database_access.py" "$clipboard_command" "$variable_name" || status=$?
 
 case $status in
   0)
     printf '%s\n' "The password is on the clipboard and nowhere else."
     ;;
   3)
+    if [ "$variable_name" = DATABASE_URL ]; then
+      fail "The service '$service' has no database address. Check that '$service' is the Postgres service ('railway status --json'), then retry."
+    fi
+
     fail "The service '$service' has no public database address, so a tool in another project cannot reach it. Check that '$service' is the Postgres service ('railway status --json'), then create the address with 'railway tcp-proxy create --port 5432 -s $service' from $saas_dir, wait for the database to restart, then retry."
     ;;
   4)

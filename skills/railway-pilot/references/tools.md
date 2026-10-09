@@ -2,7 +2,9 @@
 
 Add a tool from the Railway template marketplace, connect it to the SaaS data, and build its content.
 
-Tools live in their own Railway project, separate from the app, so a tool can never slow down or break the app. Run the Railway commands of this file from `~/.railway-pilot/tools-project/`, which is linked to that project. Check with `railway status` when in doubt: a deployment sent to the wrong project lands in the app's project.
+Tools live in their own Railway project, separate from the app, so the app's project stays as the developer left it. Do not ask: this is the default. Run the Railway commands of this file from `~/.railway-pilot/tools-project/`, which is linked to that project. Check with `railway status` when in doubt.
+
+**When the user asks for a tool inside the app's project**: do it. Every command of this file then runs from `~/.railway-pilot/saas-project/` for that tool, and step 5 uses the private network. Say once what it changes: the tool sits next to the app in the same project, it reaches the database without going through the internet, and a test or preview environment copied from production will copy the tool too. That folder is linked to the app's own service: `railway deploy -t <code>` takes no `-s` and adds the template's services to the production environment, and every other command takes `-s <tool service>`, so nothing lands on the app by default. Skip the creation of the tools project in step 3, and list the services with `railway status --json` before and after the deployment: the tool's services are the new ones, record those exact names. A tool already running in the tools project cannot move: offer to deploy it again inside the app's project (what was built in it is lost). Record `project app` on the tool's line in `state.md`.
 
 ## 1. Find a template
 
@@ -54,7 +56,7 @@ Give the user the URL and guide the creation of the admin account screen by scre
 
 Only when the user wants the tool to read their data.
 
-The tool lives in a separate project, so it reaches the database through its public address, with the database's own user and password. Say in one sentence that traffic through that address is billed by Railway (about 0.05 USD per GB).
+A tool in the tools project reaches the database through its public address, with the database's own user and password. Say in one sentence that traffic through that address is billed by Railway (about 0.05 USD per GB).
 
 ```
 sh $SCRIPTS/database-access.sh --service <postgres service>
@@ -63,6 +65,7 @@ sh $SCRIPTS/database-access.sh --service <postgres service>
 - `<postgres service>` is the `Postgres service` line of `state.md`.
 - The script prints host, port, database and user. The password is on the clipboard and nowhere else: tell the user to paste it before copying anything else. Clipboard overwritten: run the script again.
 - When it says the database has no public address, create one with the command it gives, wait until `railway status --json` shows the database deployed again, and run it again.
+- A tool inside the app's project: add `--private`. The script gives the internal address, which only answers from a service of the same project and the same environment as the database, so the tool does not use the public address and its traffic is not billed. Never give `--private` to a tool of the tools project. A public address that already exists stays open.
 - Never read the database variables yourself: they contain the password.
 
 Open the tool's database screen in the Browser pane and fill host, port, database and user yourself. The user only pastes the password from the clipboard into the password field. This database account can also write: never run or save from a tool a query that changes data. Then test the connection from the tool and set `app data connected` on the tool's line in `state.md`.
@@ -98,10 +101,10 @@ A tool left empty is not used. As soon as it answers and is connected, propose i
 
 ## 8. Record
 
-- `state.md`: tool, template code, service names, URL, how it is driven, whether it is connected to the app's data.
+- `state.md`: tool, project (tools or app), template code, service names, URL, how it is driven, whether it is connected to the app's data.
 - `tools.md`: what was built (dashboard, workflow), for what question, and where it lives.
 - `journal.md`: one dated line with its `undo:` (`undo.md`).
 
 ## Removing a tool
 
-Say in one sentence what will be deleted and that it cannot be undone, ask once, and on yes run `railway service delete -s <service> -y` from `~/.railway-pilot/tools-project/` for each service of the tool. Update `state.md` and `journal.md`.
+Say in one sentence what will be deleted and that it cannot be undone, ask once, and on yes run `railway service delete -s <service> -y` for each service of the tool, from `~/.railway-pilot/tools-project/` or, for a tool recorded as `project app`, from `~/.railway-pilot/saas-project/`. Never delete a service that is not on the tool's line in `state.md`, and in the app's project stop if a name is the app service or the `Postgres service` of `state.md`. Update `state.md` and `journal.md`.

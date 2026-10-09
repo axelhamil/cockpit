@@ -41,6 +41,52 @@ class DatabaseAccessTest(ScriptTestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.read("clipboard"), PASSWORD)
 
+    def test_given_the_private_mode_then_the_internal_address_is_given(self):
+        self.railway_answers(
+            {
+                "DATABASE_PUBLIC_URL": PUBLIC_URL,
+                "DATABASE_URL": "postgresql://postgres:s3cr3t-p%40ss@postgres.railway.internal:5432/railway",
+            }
+        )
+
+        result = self.access("--service", "Postgres", "--private")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("host: postgres.railway.internal", result.stdout)
+        self.assertIn("port: 5432", result.stdout)
+        self.assertEqual(self.read("clipboard"), PASSWORD)
+        self.assertNotIn("s3cr3t", result.stdout + result.stderr)
+
+    def test_given_the_private_mode_without_an_address_then_no_public_address_is_suggested(self):
+        self.railway_answers({"PGDATA": "/var/lib/postgresql/data"})
+
+        result = self.access("--service", "Postgres", "--private")
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no database address", result.stderr)
+        self.assertNotIn("tcp-proxy", result.stderr)
+        self.assertFalse(self.exists("clipboard"))
+
+    def test_given_the_private_option_first_then_it_works_the_same(self):
+        self.railway_answers({"DATABASE_URL": "postgresql://postgres:s3cr3t-p%40ss@postgres.railway.internal:5432/railway"})
+
+        result = self.access("--private", "--service", "Postgres")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("host: postgres.railway.internal", result.stdout)
+
+    def test_given_an_option_in_place_of_the_service_name_then_the_usage_is_shown(self):
+        result = self.access("--service", "--private")
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Usage", result.stderr)
+
+    def test_given_an_unknown_option_then_the_usage_is_shown(self):
+        result = self.access("--service", "Postgres", "--public")
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Usage", result.stderr)
+
     def test_given_no_public_address_then_nothing_is_copied_and_the_message_says_how_to_create_one(self):
         self.railway_answers({"DATABASE_URL": "postgresql://postgres:x@postgres.railway.internal:5432/railway"})
 

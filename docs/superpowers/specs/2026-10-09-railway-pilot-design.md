@@ -179,11 +179,11 @@ What remains:
 
 **Choice**: 1 to 3 options through AskUserQuestion, best ranked first and marked recommended, with estimated cost and trust level.
 
-**Deploy**: in a dedicated tools project created on first need, never in the SaaS project. `railway deploy -t <code> -v "KEY=VALUE"`. The tool gets its own database, from the template or from a Postgres added to the tools project.
+**Deploy**: in a dedicated tools project created on first need, by default and without asking. On request, a tool goes inside the SaaS project and reaches the database over the private network (`database-access.sh --private`), decided on 2026-10-09. `railway deploy -t <code> -v "KEY=VALUE"`. The tool gets its own database, from the template or from a Postgres added to the tools project.
 
 **Domain**: `railway domain -s <service>`, wait for success, give the URL and guide the admin account creation.
 
-**Connect to SaaS data**: Railway projects do not share a private network, so the tool reaches the SaaS database through its public TCP proxy (egress billed at 0.05 USD per GB). The client is told about the exposure and the cost before confirming. Then `database-access.sh --service <postgres service>`:
+**Connect to SaaS data**: Railway projects do not share a private network, so a tool in the tools project reaches the SaaS database through its public TCP proxy (egress billed at 0.05 USD per GB). The client is told about the exposure and the cost before confirming. Then `database-access.sh --service <postgres service>`:
 
 - reads the public address of the SaaS database from Railway;
 - puts the password on the clipboard and prints only host, port, database and user;

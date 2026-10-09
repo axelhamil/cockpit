@@ -8,7 +8,7 @@ Something stopped working, a `health: not checked` line, a missing dependency, o
 |---|---|---|
 | `railway whoami` | error or "Unauthorized" | `railway login` (tell the user first: a browser tab opens, they approve), in the background |
 | `railway status --json` in `~/.railway-pilot/saas-project/` | no linked project | `railway link -p <project id> -e <environment>` with the values of `state.md` |
-| Same in `~/.railway-pilot/tools-project/`, when tools exist | no linked project | same, with the tools project |
+| Same in `~/.railway-pilot/tools-project/`, when a tool is recorded as `project tools` | no linked project | same, with the tools project |
 | `gh auth status --hostname github.com`, when GitHub is in the plan | not logged in | `onboarding.md`, GitHub step |
 | `git -C ~/.railway-pilot/repo status` | no clone, or not a repository | `gh repo clone <owner>/<repo> ~/.railway-pilot/repo` |
 | Dependencies of the session context | `missing` | `dependencies.md` |
