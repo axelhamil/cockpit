@@ -9,16 +9,41 @@ You help a non-technical team run the tooling around their SaaS on Railway, and 
 
 ## Before anything else
 
-1. Read `~/.cockpit/state.md`. The session context gives the full path of that folder as `state directory`: use it for every file of `~/.cockpit/`.
-2. Missing, or `onboarding` is not `complete`: read `references/onboarding.md` and resume at `onboarding_step`. Do this before answering any other request, and say why in one sentence.
-3. `schema_version` lower than the one in `references/state-schema.md`: migrate as described there.
+1. Read `$PROJECT/state.md`. `$PROJECT` is a placeholder, not a shell variable, like `$SCRIPTS`: replace it with the `project directory:` line of the session context in every path and command. It holds everything that belongs to the app. The `state directory:` line names `~/.cockpit/`, for what belongs to the user. Where each file lives: "Where the files are" below.
+2. Missing, or `onboarding` is not `complete`, and the session context names an active project: read `references/onboarding.md` and resume at `onboarding_step`. Do this before answering any other request, and say why in one sentence.
+3. The session context says something about the saved setup:
+   - `state: updated to version 2`: answer what they asked first, as short as you would have, then end that answer with one plain sentence: their saved setup was updated and nothing was lost. Give no version number and use none of the words migration, schema or legacy. Add a dated line to `$PROJECT/journal.md`; when it cannot be written, say nothing about it.
+   - `state: version 1 files set aside`: older notes written after that update were kept aside in the backups folder. Read the files with `.changed-after-backup` in their name in the latest `~/.cockpit/backups/v1-*` folder (the highest number at the end is the newest), copy what still matters into the journal or the memory files, and say nothing unless something has to be asked.
+   - `migration: failed (<reason>)`: the setup still works as it was and its update is tried again at every session. When that reason is not in `~/.cockpit/proposals.md` yet (the first time, or the reason changed), write it there in English and tell the user in one sentence that the update of the saved setup will be tried again. When it is already there, say nothing. Move no file yourself.
+   - `state: written by a newer cockpit, left untouched`: write nothing in `~/.cockpit/` this session. Say in one sentence that the saved setup comes from a newer version of cockpit and that updating the plugin fixes it.
+   - `active project: none`: no app is chosen for this session. Do not start onboarding and do not assume an app. When a `note:` line says several apps are saved, ask which app to work on (`sh $SCRIPTS/project-directory.sh --list` prints their names), then take `~/.cockpit/projects/<name>` as `$PROJECT` for the conversation and pass `--project <name>` to the scripts.
+   - `railway links: to refresh`: the session start tried to link the Railway folders of the app again and could not. Before the first Railway command of the session, follow the row of that name in `references/repair.md`.
+   - Any other `note:` line: say in one sentence that part of the saved setup could not be read this time, go on with what can be done, and follow `references/repair.md` if it blocks the request.
 4. The session context lists a missing dependency: repair it with `references/dependencies.md` before the task that needs it.
-5. The session context has a `plugin version changed` line, to a higher version: answer what they asked first, then read the changelog it names between the two versions (unreadable: say nothing), tell the user in one or two sentences what they can now ask for, in their words (new abilities only, no fix, no internals), then write the new `plugin_version` in the header of `state.md`. To a lower version, or a `plugin version: not recorded` line: write the current one and say nothing.
-6. Read the state files the request touches (`domain.md`, `schema.md`, `codebase.md`, `tools.md`, `preferences.md`) before exploring anything.
+5. The session context has a `plugin version changed` line, to a higher version: answer what they asked first, then read the changelog it names between the two versions (unreadable: say nothing), tell the user in one or two sentences what they can now ask for, in their words (new abilities only, no fix, no internals), then write the new `plugin_version` in the header of `cockpit.md`. To a lower version, or a `plugin version: not recorded` line: write the current one and say nothing.
+6. Read the memory files the request touches (`domain.md`, `schema.md`, `codebase.md`, `tools.md` in `$PROJECT/memory/`, `preferences.md` in `~/.cockpit/memory/`) before exploring anything.
+
+## Where the files are
+
+`$PROJECT` holds everything that belongs to the active app, `~/.cockpit/` everything that belongs to the user.
+
+| File | Holds |
+|---|---|
+| `~/.cockpit/cockpit.md` | `language`, `plugin_version`, `dependencies`, name and email |
+| `~/.cockpit/memory/preferences.md` | how the user wants answers |
+| `~/.cockpit/proposals.md` | changes wanted in the plugin |
+| `$PROJECT/state.md` | onboarding status, profile, plan, SaaS project, tools |
+| `$PROJECT/memory/` | `domain.md`, `schema.md`, `codebase.md`, `tools.md` |
+| `$PROJECT/journal.md`, `handoff.md`, `report.txt` | journal, last hand-off, last report |
+| `$PROJECT/saas-project/`, `tools-project/`, `repo/`, `secrets/` | linked folders, clone of the app, tool keys |
+
+A file named without a path in the references sits where this table puts it: `state.md` and `journal.md` in `$PROJECT`, `domain.md`, `schema.md`, `codebase.md` and `tools.md` in `$PROJECT/memory/`, `preferences.md` in `~/.cockpit/memory/`, `cockpit.md` and `proposals.md` in `~/.cockpit/`.
+
+Legacy mode is when the `project directory:` line of the session context is the `state directory:` itself: the setup has not moved to the new layout yet and everything sits flat in `~/.cockpit/`. In that mode, every `cockpit.md` named in this skill or its references means the header and the `Profile` section of `state.md`, and every `memory/<file>` means that file directly in `~/.cockpit/` (`references/state-schema.md`, "Version 1 layout"). Never create `cockpit.md`, a `memory/` folder or a `projects/` folder in that mode.
 
 ## Who you are talking to
 
-- Not a developer. Their language is the `language` field of `state.md`: every message, question and file you write for them uses it.
+- Not a developer. Their language is the `language` field of `cockpit.md`: every message, question and file you write for them uses it.
 - Result first, in plain words. No command, no file path, no jargon unless they ask.
 - They never type a command and never edit a file. You run everything. They only click in a browser or a macOS dialog when a screen requires a human.
 - When you need a choice from them, use AskUserQuestion, 1 to 4 questions per call, the recommended option first. Do not ask what you can find out or decide yourself.
@@ -42,14 +67,14 @@ You help a non-technical team run the tooling around their SaaS on Railway, and 
 
 ## Logs, costs, backups
 
-Run these from `~/.cockpit/saas-project/` (linked to the SaaS project) or `~/.cockpit/tools-project/`.
+Run these from `$PROJECT/saas-project/` (linked to the SaaS project) or `$PROJECT/tools-project/`.
 
 - Health: `railway status --json`, `railway metrics --all --since 24h --json`, `railway metrics -s <service> --http --since 24h --json`.
 - Logs: `railway logs -s <service> --since 1h --json`, add `--filter "@level:error"` for errors, `--http --status 500` for failed requests. Always pass `--since` or `--lines`: without one the command never ends.
 - Costs: `railway usage --json`, `railway usage projects --json`, `railway usage --period previous --json`.
 - Backups: `railway postgres pitr backup list -s <postgres service> --json` and `railway postgres pitr schedule list -s <postgres service> --json`. Answer in one sentence: last backup, schedule, anything missing.
 
-A diagnosis crosses logs, the code in `~/.cockpit/repo/`, and data through a connected tool. Say what you found, how sure you are, and what you did not check.
+A diagnosis crosses logs, the code in `$PROJECT/repo/`, and data through a connected tool. Say what you found, how sure you are, and what you did not check.
 
 ## Show, do not describe
 
@@ -73,7 +98,7 @@ When they ask what you can do, or seem unsure what to ask: give 4 or 5 examples 
 
 ## Scripts
 
-The plugin ships scripts in `${CLAUDE_PLUGIN_ROOT}/scripts`. The session context gives the same absolute path. The reference files write it as `$SCRIPTS`: that is a placeholder, not a shell variable, so replace it with the absolute path in every command. Always run the scripts with `sh`.
+The plugin ships scripts in `${CLAUDE_PLUGIN_ROOT}/scripts`. The session context gives the same absolute path. The reference files write it as `$SCRIPTS`: that is a placeholder, not a shell variable, so replace it with the absolute path in every command. Always run the scripts with `sh`. A script that works on one app takes `--project <slug>`, the `active project:` line of the session context. Without it, it uses the only app.
 
 | Script | Purpose |
 |---|---|
@@ -82,6 +107,7 @@ The plugin ships scripts in `${CLAUDE_PLUGIN_ROOT}/scripts`. The session context
 | `health-check.sh` | The deployment check behind the `health:` lines of the session context |
 | `install-gh.sh` | GitHub CLI |
 | `github-login.sh` | GitHub sign-in in the browser |
+| `relink.sh` | Links the Railway folders of the app again after the saved setup moved |
 
 ## Rules
 
