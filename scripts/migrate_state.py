@@ -1,7 +1,11 @@
+import errno
+import fcntl
 import filecmp
 import os
 import re
 import shutil
+import signal
+import stat
 import sys
 import time
 import unicodedata
@@ -11,11 +15,18 @@ SCHEMA_VERSION = 2
 NEWER_SCHEMA_STATUS = 3
 HEADER_LINE_LIMIT = 50
 LOCK_NAME = ".migrating"
-LOCK_STALE_SECONDS = 600
 LOCK_WAIT_SECONDS = 3
+LOCK_RETRY_SECONDS = 0.2
 DEFAULT_SLUG = "app"
+SLUG_LENGTH_LIMIT = 40
 IMPORTED_HEADING = b"## Imported\n\n"
 CLONE_LINE = "- Clone: ~/.cockpit/repo"
+USER_FILE = "cockpit.md"
+TEMPORARY_USER_FILE = ".cockpit.md.tmp"
+LEGACY_STATE_FILE = "state.md"
+BACKUPS = "backups"
+PRIVATE_DIRECTORY_MODE = 0o700
+CHANGED_SUFFIX = ".changed-after-backup"
 MOVED_DIRECTORIES = ("saas-project", "tools-project", "repo", "secrets")
 LINKED_DIRECTORIES = ("saas-project", "tools-project")
 PROJECT_FILES = ("journal.md", "handoff.md", "report.txt")
@@ -32,25 +43,54 @@ LEGACY_ROOT_FILES = (
     "journal.md",
     "handoff.md",
     "report.txt",
-    "state.md",
+    LEGACY_STATE_FILE,
 )
+HANDLED_SIGNALS = (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)
+SIGNAL_STATUS_BASE = 128
 NOTHING = "nothing"
 NEWER = "newer"
 MIGRATION = "migration"
 CLEANUP = "cleanup"
+CREATED_FILE = "file"
+CREATED_DIRECTORY = "directory"
+CREATED_BACKUP = "backup"
+MOVED = "move"
 USER_LINE = re.compile(r"^- User:[ \t]*(.*?)\r?$")
+BACKUP_PATH = re.compile(r"backups/v1-[0-9]{8}-[0-9]{6}(-[0-9]+)?")
 
 
 class MigrationError(Exception):
     pass
 
 
+class LockBusy(MigrationError):
+    pass
+
+
+class Interrupted(BaseException):
+    def __init__(self, number):
+        super().__init__(number)
+        self.number = number
+
+
+def interrupt(number, _frame):
+    raise Interrupted(number)
+
+
 def reach(stage, can_fail=True):
-    if can_fail and os.environ.get("COCKPIT_MIGRATION_FAIL_AT") == stage:
+    if can_fail and stage in os.environ.get("COCKPIT_MIGRATION_FAIL_AT", "").split(","):
         raise MigrationError("stopped on purpose after " + stage)
 
-    if os.environ.get("COCKPIT_MIGRATION_KILL_AT") == stage:
-        os._exit(70)
+    kill_stage, _, signal_name = os.environ.get("COCKPIT_MIGRATION_KILL_AT", "").partition(":")
+
+    if kill_stage != stage:
+        return
+
+    if signal_name:
+        signal.raise_signal(getattr(signal, "SIG" + signal_name))
+        return
+
+    os._exit(70)
 
 
 def split_header(text):
@@ -83,8 +123,11 @@ def read_header(lines):
 
 
 def read_state(path):
-    with open(path, encoding="utf-8", errors="surrogateescape", newline="") as handle:
-        parsed = split_header(handle.read())
+    try:
+        with open(path, encoding="utf-8", errors="surrogateescape", newline="") as handle:
+            parsed = split_header(handle.read())
+    except FileNotFoundError:
+        return None
 
     if parsed is None:
         return None
@@ -112,7 +155,8 @@ def slug_from(body):
         if section == "SaaS project" and line.startswith("- Project:"):
             name = re.sub(r"\([^()]*\)\s*$", "", line[len("- Project:") :].rstrip("\r").rstrip())
             plain = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
-            return re.sub(r"[^a-z0-9]+", "-", plain.lower()).strip("-") or DEFAULT_SLUG
+            slug = re.sub(r"[^a-z0-9]+", "-", plain.lower()).strip("-")
+            return slug[:SLUG_LENGTH_LIMIT].rstrip("-") or DEFAULT_SLUG
 
     return DEFAULT_SLUG
 
@@ -165,14 +209,25 @@ def project_file_text(known, extra, body):
     return "---\n" + "\n".join(lines) + "\n---\n" + body
 
 
-def write_new(path, data, text=False):
-    if text:
-        handle = open(path, "x", encoding="utf-8", errors="surrogateescape", newline="")
-    else:
-        handle = open(path, "xb")
+def as_bytes(text):
+    return text.encode("utf-8", "surrogateescape")
 
-    with handle:
+
+def mode_of(path):
+    return stat.S_IMODE(os.stat(path).st_mode)
+
+
+def write_file(path, data, mode=None, replace=False):
+    flags = os.O_WRONLY | os.O_CREAT | (os.O_TRUNC if replace else os.O_EXCL)
+    descriptor = os.open(path, flags, 0o666 if mode is None else mode)
+
+    with os.fdopen(descriptor, "wb") as handle:
+        if mode is not None:
+            os.fchmod(descriptor, mode)
+
         handle.write(data)
+        handle.flush()
+        os.fsync(descriptor)
 
 
 def read_bytes(path):
@@ -187,198 +242,348 @@ def remove_file(path):
         pass
 
 
-def remove_if_empty(path):
-    try:
-        os.rmdir(path)
-    except OSError:
-        pass
+def is_plain_file(path):
+    return os.path.isfile(path) and not os.path.islink(path)
 
 
-def backup_names(root, partial):
+def backup_names(root):
     try:
-        names = sorted(os.listdir(os.path.join(root, "backups")))
+        names = sorted(os.listdir(os.path.join(root, BACKUPS)))
     except FileNotFoundError:
         return []
 
-    return [name for name in names if name.startswith("v1-") and name.endswith(".partial") == partial]
+    return [name for name in names if BACKUP_PATH.fullmatch(BACKUPS + "/" + name)]
 
 
-def latest_backup(root):
-    names = backup_names(root, partial=False)
-    return os.path.join(root, "backups", names[-1]) if names else None
+def free_backup_name(root):
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    name = "v1-" + stamp
+    repeat = 1
+
+    while any(os.path.lexists(os.path.join(root, BACKUPS, name + suffix)) for suffix in ("", ".partial")):
+        repeat += 1
+        name = "v1-{}-{}".format(stamp, repeat)
+
+    return name
 
 
-def remove_unchanged(path, backup):
-    if backup is None:
+def free_changed_path(backup, name):
+    path = os.path.join(backup, name + CHANGED_SUFFIX)
+    repeat = 1
+
+    while os.path.lexists(path):
+        repeat += 1
+        path = os.path.join(backup, "{}{}-{}".format(name, CHANGED_SUFFIX, repeat))
+
+    return path
+
+
+def retire_legacy_file(root, name, backup):
+    path = os.path.join(root, name)
+    saved = os.path.join(backup, name)
+    is_link = os.path.islink(path)
+
+    if is_link and name != LEGACY_STATE_FILE:
         return
 
-    saved = os.path.join(backup, os.path.basename(path))
+    if not is_link and not os.path.isfile(path):
+        return
+
+    if not is_link and is_plain_file(saved) and filecmp.cmp(path, saved, shallow=False):
+        os.remove(path)
+        return
+
+    os.rename(path, free_changed_path(backup, name))
+
+
+def retire_legacy_files(root, backup):
+    for name in LEGACY_ROOT_FILES:
+        try:
+            retire_legacy_file(root, name, backup)
+        except OSError:
+            pass
+
+
+def undo_file(root, relative):
+    remove_file(os.path.join(root, relative))
+
+
+def undo_directory(root, relative):
+    path = os.path.join(root, relative)
+
+    if os.path.islink(path) or not os.path.isdir(path):
+        return
 
     try:
-        if os.path.isfile(path) and os.path.isfile(saved) and filecmp.cmp(path, saved, shallow=False):
-            os.remove(path)
-    except OSError:
-        pass
+        os.rmdir(path)
+    except OSError as error:
+        if error.errno not in (errno.ENOTEMPTY, errno.EEXIST):
+            raise
+
+
+def undo_move(root, relative):
+    reach("rollback")
+    source = os.path.join(root, os.path.basename(relative))
+    target = os.path.join(root, relative)
+
+    if not os.path.lexists(source) and os.path.lexists(target):
+        os.rename(target, source)
+
+
+def undo_backup(root, relative):
+    for path in (os.path.join(root, relative) + ".partial", os.path.join(root, relative)):
+        if os.path.lexists(path):
+            shutil.rmtree(path)
+
+
+UNDO = {
+    CREATED_FILE: undo_file,
+    CREATED_DIRECTORY: undo_directory,
+    CREATED_BACKUP: undo_backup,
+    MOVED: undo_move,
+}
+
+
+def is_safe_entry(kind, relative):
+    if kind not in UNDO or not relative or os.path.isabs(relative) or ".." in relative.split("/"):
+        return False
+
+    return kind != CREATED_BACKUP or BACKUP_PATH.fullmatch(relative) is not None
+
+
+class Ledger:
+    def __init__(self, descriptor):
+        self.descriptor = descriptor
+
+    def entries(self):
+        os.lseek(self.descriptor, 0, os.SEEK_SET)
+        data = b""
+
+        while True:
+            chunk = os.read(self.descriptor, 65536)
+
+            if not chunk:
+                break
+
+            data += chunk
+
+        complete_lines = data.decode("utf-8", "ignore").split("\n")[:-1]
+        entries = [tuple(line.split(" ", 1)) for line in complete_lines if " " in line]
+
+        return [entry for entry in entries if is_safe_entry(*entry)]
+
+    def record(self, kind, relative):
+        os.write(self.descriptor, as_bytes("{} {}\n".format(kind, relative)))
+        os.fsync(self.descriptor)
+
+    def replace(self, entries):
+        os.ftruncate(self.descriptor, 0)
+
+        for kind, relative in entries:
+            os.write(self.descriptor, as_bytes("{} {}\n".format(kind, relative)))
+
+        os.fsync(self.descriptor)
+
+    def discard(self):
+        try:
+            self.replace([])
+        except OSError:
+            pass
+
+    def undo(self, root):
+        failed = []
+
+        for kind, relative in reversed(self.entries()):
+            try:
+                UNDO[kind](root, relative)
+            except Exception:
+                failed.append((kind, relative))
+
+        failed.reverse()
+        self.replace(failed)
+        return not failed
 
 
 class Lock:
     def __init__(self, root):
         self.path = os.path.join(root, LOCK_NAME)
+        self.descriptor = None
 
-    def is_stale(self):
+    def is_still_the_lock_file(self, descriptor):
         try:
-            return time.time() - os.stat(self.path).st_mtime > LOCK_STALE_SECONDS
+            return os.path.samestat(os.fstat(descriptor), os.stat(self.path))
         except FileNotFoundError:
-            return True
+            return False
+
+    def try_to_take(self):
+        try:
+            descriptor = os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_APPEND, 0o600)
+        except IsADirectoryError:
+            raise MigrationError("a folder named {} is in the way".format(LOCK_NAME))
+
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            os.close(descriptor)
+            return False
+
+        if not self.is_still_the_lock_file(descriptor):
+            os.close(descriptor)
+            return False
+
+        self.descriptor = descriptor
+        return True
 
     def __enter__(self):
         wait = float(os.environ.get("COCKPIT_MIGRATION_LOCK_WAIT", LOCK_WAIT_SECONDS))
         deadline = time.monotonic() + wait
+        has_waited = False
 
-        while True:
-            try:
-                os.mkdir(self.path)
-                return self
-            except FileExistsError:
-                pass
-
-            if self.is_stale():
-                try:
-                    os.rmdir(self.path)
-                except FileNotFoundError:
-                    pass
-                continue
+        while not self.try_to_take():
+            if not has_waited:
+                has_waited = True
+                reach("waiting", can_fail=False)
 
             if time.monotonic() >= deadline:
-                raise MigrationError("another session is migrating the saved setup")
+                raise LockBusy("another session is migrating the saved setup")
 
-            time.sleep(0.2)
+            time.sleep(LOCK_RETRY_SECONDS)
+
+        return self
 
     def __exit__(self, *_):
-        remove_if_empty(self.path)
+        try:
+            if os.fstat(self.descriptor).st_size == 0:
+                remove_file(self.path)
+        finally:
+            os.close(self.descriptor)
 
 
 class Migration:
-    def __init__(self, root, state):
+    def __init__(self, root, state, ledger):
         self.root = root
+        self.ledger = ledger
         self.known, self.extra, body = state
         self.app_body, user = split_user(body)
         self.user_text = user_file_text(self.known, user)
         self.slug = slug_from(body)
-        self.project = os.path.join(root, "projects", self.slug)
+        self.project = os.path.join("projects", self.slug)
+        self.state_mode = mode_of(self.at_root(LEGACY_STATE_FILE))
         self.backup = None
 
     def at_root(self, *parts):
         return os.path.join(self.root, *parts)
 
-    def in_project(self, *parts):
-        return os.path.join(self.project, *parts)
+    def is_committed(self):
+        return os.path.lexists(self.at_root(USER_FILE))
 
-    def discard_leftovers(self):
-        for name in MOVED_DIRECTORIES:
-            source = self.at_root(name)
-            target = self.in_project(name)
+    def ensure_directory(self, relative, mode=0o777):
+        path = self.at_root(relative)
 
-            if not os.path.lexists(source) and os.path.lexists(target):
-                os.rename(target, source)
+        if os.path.isdir(path):
+            return
 
-        for name in ("state.md", ".relink") + PROJECT_FILES:
-            remove_file(self.in_project(name))
+        if os.path.lexists(path):
+            raise MigrationError("{} is not a folder".format(relative))
 
-        shutil.rmtree(self.in_project("memory"), ignore_errors=True)
-        remove_file(self.at_root("memory", "preferences.md"))
-        remove_file(self.at_root(".cockpit.md.tmp"))
+        self.ledger.record(CREATED_DIRECTORY, relative)
+        os.mkdir(path, mode)
 
-        for name in backup_names(self.root, partial=True):
-            shutil.rmtree(self.at_root("backups", name), ignore_errors=True)
+    def claim(self, *parts):
+        relative = os.path.join(*parts)
 
-        for directory in (self.at_root("memory"), self.project, self.at_root("projects"), self.at_root("backups")):
-            remove_if_empty(directory)
+        if os.path.lexists(self.at_root(relative)):
+            raise MigrationError("{} already exists".format(relative))
+
+        self.ledger.record(CREATED_FILE, relative)
+        return self.at_root(relative)
+
+    def undo_interrupted_run(self):
+        if self.is_committed():
+            raise MigrationError("{} is not a file".format(USER_FILE))
+
+        if not self.ledger.undo(self.root):
+            raise MigrationError("an interrupted update could not be undone")
 
     def roll_back(self):
-        self.discard_leftovers()
+        if self.is_committed():
+            return
 
-        if self.backup:
-            shutil.rmtree(self.backup, ignore_errors=True)
+        for number in HANDLED_SIGNALS:
+            signal.signal(number, signal.SIG_IGN)
 
-        remove_if_empty(self.at_root("backups"))
+        try:
+            self.ledger.undo(self.root)
+        except Exception:
+            pass
 
     def back_up(self):
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-        final = self.at_root("backups", "v1-" + stamp)
-        repeat = 1
-
-        while os.path.exists(final):
-            repeat += 1
-            final = self.at_root("backups", "v1-{}-{}".format(stamp, repeat))
-
+        self.ensure_directory(BACKUPS, PRIVATE_DIRECTORY_MODE)
+        relative = os.path.join(BACKUPS, free_backup_name(self.root))
+        final = self.at_root(relative)
         partial = final + ".partial"
 
-        os.makedirs(self.at_root("backups"), mode=0o700, exist_ok=True)
-        os.mkdir(partial, 0o700)
+        self.ledger.record(CREATED_BACKUP, relative)
+        os.mkdir(partial, PRIVATE_DIRECTORY_MODE)
 
         for name in os.listdir(self.root):
-            path = self.at_root(name)
-
-            if os.path.isfile(path) and not os.path.islink(path):
-                shutil.copy2(path, partial)
+            if name != LOCK_NAME and is_plain_file(self.at_root(name)):
+                shutil.copy2(self.at_root(name), partial)
 
         os.rename(partial, final)
         self.backup = final
 
+    def import_topic(self, source_name, *target):
+        source = self.at_root(source_name)
+
+        if os.path.isfile(source):
+            write_file(self.claim(*target), IMPORTED_HEADING + read_bytes(source), mode_of(source))
+
     def import_memory(self):
-        os.makedirs(self.in_project("memory"))
+        self.ensure_directory(os.path.join(self.project, "memory"))
 
         for topic in PROJECT_TOPICS:
-            source = self.at_root(topic + ".md")
+            self.import_topic(topic + ".md", self.project, "memory", topic + ".md")
 
-            if os.path.isfile(source):
-                write_new(self.in_project("memory", topic + ".md"), IMPORTED_HEADING + read_bytes(source))
-
-        preferences = self.at_root("preferences.md")
-
-        if os.path.isfile(preferences):
-            os.makedirs(self.at_root("memory"), exist_ok=True)
-            write_new(self.at_root("memory", "preferences.md"), IMPORTED_HEADING + read_bytes(preferences))
+        if os.path.isfile(self.at_root("preferences.md")):
+            self.ensure_directory("memory")
+            self.import_topic("preferences.md", "memory", "preferences.md")
 
     def build(self):
-        os.makedirs(self.project, exist_ok=True)
-        write_new(self.in_project("state.md"), project_file_text(self.known, self.extra, self.app_body), text=True)
+        self.ensure_directory("projects")
+        self.ensure_directory(self.project)
+
+        project_text = project_file_text(self.known, self.extra, self.app_body)
+        write_file(self.claim(self.project, LEGACY_STATE_FILE), as_bytes(project_text), self.state_mode)
         self.import_memory()
 
         for name in PROJECT_FILES:
             if os.path.isfile(self.at_root(name)):
-                shutil.copy2(self.at_root(name), self.in_project(name))
+                shutil.copy2(self.at_root(name), self.claim(self.project, name))
 
         if any(os.path.lexists(self.at_root(name)) for name in LINKED_DIRECTORIES):
-            write_new(self.in_project(".relink"), b"")
+            write_file(self.claim(self.project, ".relink"), b"")
 
     def move_directories(self):
         for name in MOVED_DIRECTORIES:
             source = self.at_root(name)
-            target = self.in_project(name)
+            relative = os.path.join(self.project, name)
 
             if not os.path.lexists(source):
                 continue
 
-            if os.path.lexists(target):
-                raise MigrationError("projects/{}/{} already exists".format(self.slug, name))
+            if os.path.lexists(self.at_root(relative)):
+                raise MigrationError("{} already exists".format(relative))
 
-            os.rename(source, target)
+            self.ledger.record(MOVED, relative)
+            os.rename(source, self.at_root(relative))
 
     def commit(self):
-        temporary = self.at_root(".cockpit.md.tmp")
+        temporary = self.at_root(TEMPORARY_USER_FILE)
 
-        with open(temporary, "w", encoding="utf-8", errors="surrogateescape", newline="") as handle:
-            handle.write(self.user_text)
-            handle.flush()
-            os.fsync(handle.fileno())
-
-        os.rename(temporary, self.at_root("cockpit.md"))
-
-    def clean_up(self):
-        for name in LEGACY_ROOT_FILES:
-            remove_unchanged(self.at_root(name), self.backup)
+        self.ledger.record(CREATED_FILE, TEMPORARY_USER_FILE)
+        write_file(temporary, as_bytes(self.user_text), self.state_mode, replace=True)
+        os.rename(temporary, self.at_root(USER_FILE))
 
 
 def describe(error):
@@ -394,7 +599,7 @@ def describe(error):
 
 def announce_update():
     print("state: updated to version {}".format(SCHEMA_VERSION))
-    return 0
+    sys.stdout.flush()
 
 
 def announce_newer():
@@ -402,11 +607,11 @@ def announce_newer():
     return NEWER_SCHEMA_STATUS
 
 
-def migrate(root, state):
-    migration = Migration(root, state)
+def migrate(root, state, ledger):
+    migration = Migration(root, state, ledger)
 
     try:
-        migration.discard_leftovers()
+        migration.undo_interrupted_run()
         migration.back_up()
         reach("backed-up")
         migration.build()
@@ -414,29 +619,33 @@ def migrate(root, state):
         migration.move_directories()
         reach("renamed")
         migration.commit()
-    except Exception:
+    except BaseException:
         migration.roll_back()
         raise
 
+    ledger.discard()
+    announce_update()
     reach("committed", can_fail=False)
-    migration.clean_up()
+    retire_legacy_files(root, migration.backup)
 
 
-def finish_cleanup(root, state):
-    backup = latest_backup(root)
+def finish_cleanup(root):
+    names = backup_names(root)
 
-    if backup is None:
-        return False
+    try:
+        if not names:
+            os.makedirs(os.path.join(root, BACKUPS), mode=PRIVATE_DIRECTORY_MODE, exist_ok=True)
+            names = [free_backup_name(root)]
+            os.mkdir(os.path.join(root, BACKUPS, names[-1]), PRIVATE_DIRECTORY_MODE)
+    except OSError:
+        return
 
-    migration = Migration(root, state)
-    migration.backup = backup
-    migration.clean_up()
-    return True
+    retire_legacy_files(root, os.path.join(root, BACKUPS, names[-1]))
 
 
 def pending_work(root):
-    cockpit_path = os.path.join(root, "cockpit.md")
-    state_path = os.path.join(root, "state.md")
+    cockpit_path = os.path.join(root, USER_FILE)
+    state_path = os.path.join(root, LEGACY_STATE_FILE)
 
     if os.path.isfile(cockpit_path):
         installed = read_state(cockpit_path)
@@ -467,6 +676,22 @@ def pending_work(root):
     return MIGRATION, state
 
 
+def carry_out(root, ledger):
+    work, state = pending_work(root)
+
+    if work == NEWER:
+        return announce_newer()
+
+    if work == MIGRATION:
+        migrate(root, state, ledger)
+
+    if work == CLEANUP:
+        ledger.discard()
+        finish_cleanup(root)
+
+    return 0
+
+
 def run(root):
     work, _ = pending_work(root)
 
@@ -476,26 +701,24 @@ def run(root):
     if work == NOTHING:
         return 0
 
-    with Lock(root):
-        work, state = pending_work(root)
-
-        if work == NEWER:
-            return announce_newer()
-
-        if work == NOTHING:
+    try:
+        with Lock(root) as lock:
+            return carry_out(root, Ledger(lock.descriptor))
+    except LockBusy:
+        if work == CLEANUP:
             return 0
 
-        if work == MIGRATION:
-            migrate(root, state)
-        elif not finish_cleanup(root, state):
-            return 0
-
-    return announce_update()
+        raise
 
 
 def main():
+    for number in HANDLED_SIGNALS:
+        signal.signal(number, interrupt)
+
     try:
         return run(sys.argv[1])
+    except Interrupted as interruption:
+        return SIGNAL_STATUS_BASE + interruption.number
     except Exception as error:
         print("migration: failed ({})".format(describe(error)))
         return 0
