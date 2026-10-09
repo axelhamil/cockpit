@@ -39,7 +39,7 @@ class GithubLoginTest(ScriptTestCase):
         self.assertEqual(self.read("gh.stdin"), TOKEN)
         self.assertEqual(
             self.gh_calls(),
-            ["auth login --with-token --hostname github.com", "auth setup-git --hostname github.com", "auth status --hostname github.com"],
+            ["auth login --with-token --hostname github.com --git-protocol https", "auth setup-git --hostname github.com", "auth status --hostname github.com"],
         )
         self.assertEqual(self.read("clipboard"), "")
         self.assertNotIn(TOKEN, result.stdout + result.stderr)
@@ -55,7 +55,7 @@ class GithubLoginTest(ScriptTestCase):
         self.assertIn("token", result.stderr)
         self.assertIn("Bad credentials", result.stderr)
         self.assertNotIn(TOKEN, result.stdout + result.stderr)
-        self.assertEqual(self.gh_calls(), ["auth login --with-token --hostname github.com"])
+        self.assertEqual(self.gh_calls(), ["auth login --with-token --hostname github.com --git-protocol https"])
 
     def test_given_something_else_on_the_clipboard_then_it_is_left_alone_and_gh_is_not_called(self):
         self.write("clipboard", "my shopping list")
