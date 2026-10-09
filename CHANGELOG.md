@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/axelhamil/railway-pilot/compare/v1.4.0...v1.5.0) (2026-10-09)
+
+
+### Features
+
+* **tools:** put a tool inside the app's project on request ([8924860](https://github.com/axelhamil/railway-pilot/commit/892486083df85e9b541336077f4b75f7b41c72ee))
+
 # [1.4.0](https://github.com/axelhamil/railway-pilot/compare/v1.3.0...v1.4.0) (2026-10-09)
 
 
