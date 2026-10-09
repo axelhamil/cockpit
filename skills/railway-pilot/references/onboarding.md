@@ -4,12 +4,12 @@ Guided first run. Also used to add a usage or a tool later.
 
 ## How to run it
 
-- Resume at `onboarding_step` in `state.md`, which names the next step to run: `profile`, `plan`, `dependencies`, `railway`, `backups`, `protection`, `github`, `tools`, `discovery`, `check`. Create `~/.railway-pilot/state.md` from `state-schema.md` as soon as the language is known.
+- Resume at `onboarding_step` in `state.md`, which names the next step to run: `profile`, `plan`, `dependencies`, `railway`, `backups`, `settings`, `github`, `tools`, `discovery`, `check`. Create `~/.railway-pilot/state.md` from `state-schema.md` as soon as the language is known.
 - After every step that succeeds, before starting the next one: write what the step learned in its section of `state.md`, mark the step done under `Plan`, and move `onboarding_step` forward. A session can end at any moment.
-- One step at a time: say what you are about to do and why in one sentence, say what the user will have to click if anything, do it, check it, record it.
+- One step at a time: say in one sentence what you are doing, do it, check it, record it. Speak up before a step only when the user has to click something.
 - Ask with AskUserQuestion. Group related questions in one call. Free text only when no choice fits.
 - For a web screen, say where to click, what to tick, what to copy. Ask for a screenshot when the user is lost.
-- A step that fails twice: record the failure in `state.md`, follow `escalation.md`, and continue with the steps that do not depend on it.
+- A step that fails twice: record the failure in `state.md`, tell the user plainly, offer to hand it off (`escalation.md`), and continue with the steps that do not depend on it.
 
 ## Step 1: profile
 
@@ -62,19 +62,17 @@ railway postgres pitr backup list -s <postgres service> --json
 railway postgres pitr schedule list -s <postgres service> --json
 ```
 
-- No schedule: explain that their database has no automatic backup, that backups are billed as storage, and that turning the schedule on may restart the database for a few seconds. Offer now or later. On yes: `railway postgres pitr schedule set --daily --weekly -s <postgres service>`.
+- No schedule: turn it on with `railway postgres pitr schedule set --daily --weekly -s <postgres service>` and tell the user their database is now backed up daily and weekly, billed as storage.
 - Then create one now, which changes nothing in the database: `railway postgres pitr backup create --name before-railway-pilot -s <postgres service>`.
-- A command fails because the plan or the image does not support backups: record it and escalate to the developer. Continue the onboarding. Before any tool is connected to the app's data, tell the user plainly that no backup exists and ask whether to go on.
+- A command fails because the plan or the image does not support backups: record it and tell the user plainly that their database has no backup and what that means. Continue the onboarding.
 
-## Step 6: protection
+## Step 6: settings
 
 ```
-sh $SCRIPTS/apply-settings.sh --saas-project <project id> --deployed-branch <branch> [--test-branch <branch>] --marketplace railway-pilot --repo <owner>/railway-pilot
+sh $SCRIPTS/apply-settings.sh --marketplace railway-pilot --repo <owner>/railway-pilot
 ```
 
-`<owner>/railway-pilot` is the end of the `repository` URL in `.claude-plugin/plugin.json` of the plugin. This locks the guard onto the right project and branches, installs the permission rules, and turns on automatic updates of the plugin.
-
-Verify the guard is alive with a command that does nothing when it is not: run `railway down --help`. It must be refused with a message starting with `railway-pilot guard`. If the help text appears instead, the guard is not running: stop the onboarding, change nothing else, and escalate to the plugin maintainer through `proposals.md` and the user.
+`<owner>/railway-pilot` is the end of the `repository` URL in `.claude-plugin/plugin.json` of the plugin. This pre-approves the Railway, GitHub and git commands so the user is not asked to allow each one, and turns on automatic updates of the plugin. The permission pop-ups stop after this step.
 
 ## Step 7: GitHub
 
@@ -95,9 +93,8 @@ Only if the GitHub CLI is in the plan.
 6. Set the commit identity in the clone with the user's name and email from the profile: `git config user.name "<name>"` and `git config user.email "<email>"`.
 7. `gh label create via-claude --description "Opened with railway-pilot" --repo <owner>/<repo>` (ignore "already exists").
 8. Ask the merge policy, if changes to the app are in the profile:
-   - Claude decides when a developer is needed (recommended): small presentation changes go live after their confirmation, everything else waits for the developer.
-   - The developer validates every change.
-   Without a developer, say plainly that changes beyond presentation will wait until they have one.
+   - `ask-me` (recommended): Claude says whether a change is comfortable or risky, and they decide each time.
+   - `developer-reviews`: every change waits for the developer.
 
 ## Step 8: tools
 
@@ -118,9 +115,8 @@ Without repository access, ask the business questions only and leave `schema.md`
 Run each check and report in plain words, one line each, what passed and what did not:
 
 - `railway whoami` answers.
-- `railway down --help` is refused by the guard.
 - A backup exists and a schedule is set.
-- With GitHub: `gh repo view` answers; `git push --dry-run origin <deployed branch>` from the clone is refused by the guard; create then close a test issue labelled `via-claude`.
+- With GitHub: `gh repo view` answers; create then close a test issue labelled `via-claude`.
 - Each tool answers at its URL, and its MCP server lists its tools.
 - Each database role refuses a write: ask the tool to run `CREATE TABLE railway_pilot_check (id int)` and expect an error.
 

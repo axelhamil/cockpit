@@ -3,22 +3,9 @@ import os
 import stat
 import unittest
 
-from support import SAAS_PROJECT_ID, SCRIPTS_DIR, ScriptTestCase
+from support import SCRIPTS_DIR, ScriptTestCase
 
-OTHER_PROJECT_ID = "00000000-0000-0000-0000-000000000000"
-
-ARGUMENTS = [
-    "--saas-project",
-    SAAS_PROJECT_ID,
-    "--deployed-branch",
-    "main",
-    "--test-branch",
-    "staging",
-    "--marketplace",
-    "railway-pilot",
-    "--repo",
-    "acme/railway-pilot",
-]
+ARGUMENTS = ["--marketplace", "railway-pilot", "--repo", "acme/railway-pilot"]
 
 
 def replaced(option, value):
@@ -43,7 +30,7 @@ class ApplySettingsTest(ScriptTestCase):
     def apply(self, arguments=None):
         return self.run_script("apply-settings.sh", *(ARGUMENTS if arguments is None else arguments))
 
-    def test_given_no_settings_file_then_it_is_created_with_rules_marketplace_and_guard_conf(self):
+    def test_given_no_settings_file_then_it_is_created_with_the_rules_and_the_marketplace(self):
         result = self.apply()
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -52,37 +39,28 @@ class ApplySettingsTest(ScriptTestCase):
             self.settings()["extraKnownMarketplaces"],
             {"railway-pilot": {"source": {"source": "github", "repo": "acme/railway-pilot"}, "autoUpdate": True}},
         )
-        self.assertEqual(
-            self.read("pilot-home/guard.conf"),
-            "SAAS_PROJECT_ID={}\nDEPLOYED_BRANCH=main\nTEST_BRANCH=staging\n".format(SAAS_PROJECT_ID),
-        )
-        self.assertFalse(self.exists("claude/settings.json.before-railway-pilot"))
+        self.assertEqual(os.listdir(self.path("claude")), ["settings.json"])
+        self.assertEqual(os.listdir(self.path("pilot-home")), [])
 
-    def test_shipped_permissions_open_the_state_folder_and_close_the_secret_stores(self):
+    def test_shipped_permissions_only_allow(self):
         permissions = shipped_permissions()
 
+        self.assertEqual(sorted(permissions), ["additionalDirectories", "allow"])
         self.assertEqual(permissions["additionalDirectories"], ["~/.railway-pilot"])
-        for rule in ("Read(~/.railway-pilot/**)", "Edit(~/.railway-pilot/**)", "Bash(sh */scripts/railway-tools.sh status *)"):
-            self.assertIn(rule, permissions["allow"])
-        for rule in (
-            "Read(~/.railway/config.json)",
-            "Read(~/.config/gh/**)",
-            "Read(~/.railway-pilot/secrets/**)",
-            "Bash(gh auth token *)",
-            "Bash(git log * --output*)",
-            "Bash(railway usage limit set *)",
-        ):
-            self.assertIn(rule, permissions["deny"])
-        for kind in ("allow", "ask", "deny"):
-            self.assertEqual(len(permissions[kind]), len(set(permissions[kind])), kind)
-            self.assertEqual([rule for rule in permissions[kind] if rule.startswith("Bash(") and not rule.endswith("*)")], [], kind)
-        self.assertEqual(set(permissions["allow"]) & set(permissions["deny"]), set())
-
-    def test_given_no_test_branch_then_guard_conf_keeps_it_empty(self):
-        result = self.apply(ARGUMENTS[:4] + ARGUMENTS[6:])
-
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("TEST_BRANCH=\n", self.read("pilot-home/guard.conf"))
+        self.assertEqual(
+            permissions["allow"],
+            [
+                "Bash(railway *)",
+                "Bash(gh *)",
+                "Bash(git *)",
+                "Read(~/.railway-pilot/**)",
+                "Edit(~/.railway-pilot/**)",
+                "Bash(sh */scripts/create-read-role.sh *)",
+                "Bash(sh */scripts/install-gh.sh)",
+                "Bash(sh */scripts/github-login.sh)",
+                "Bash(sh */scripts/session-check.sh)",
+            ],
+        )
 
     def test_given_existing_user_settings_then_nothing_is_lost_and_a_backup_is_kept(self):
         existing = {
@@ -90,7 +68,8 @@ class ApplySettingsTest(ScriptTestCase):
             "env": {"EDITOR": "nvim"},
             "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "true"}]}]},
             "permissions": {
-                "allow": ["Bash(ls *)", "Bash(railway status *)"],
+                "allow": ["Bash(ls *)", "Bash(git *)"],
+                "ask": ["Bash(git push *)"],
                 "deny": ["Bash(curl *)"],
                 "additionalDirectories": ["~/notes"],
                 "defaultMode": "acceptEdits",
@@ -111,9 +90,10 @@ class ApplySettingsTest(ScriptTestCase):
         self.assertEqual(merged["env"], existing["env"])
         self.assertEqual(merged["hooks"], existing["hooks"])
         self.assertEqual(merged["permissions"]["defaultMode"], "acceptEdits")
-        self.assertEqual(merged["permissions"]["allow"][:2], ["Bash(ls *)", "Bash(railway status *)"])
-        self.assertEqual(merged["permissions"]["allow"].count("Bash(railway status *)"), 1)
-        self.assertIn("Bash(curl *)", merged["permissions"]["deny"])
+        self.assertEqual(merged["permissions"]["ask"], ["Bash(git push *)"])
+        self.assertEqual(merged["permissions"]["deny"], ["Bash(curl *)"])
+        self.assertEqual(merged["permissions"]["allow"][:2], ["Bash(ls *)", "Bash(git *)"])
+        self.assertEqual(merged["permissions"]["allow"].count("Bash(git *)"), 1)
         self.assertEqual(merged["permissions"]["additionalDirectories"], ["~/notes", "~/.railway-pilot"])
         for kind, rules in shipped_permissions().items():
             self.assertTrue(set(rules) <= set(merged["permissions"][kind]), kind)
@@ -128,16 +108,23 @@ class ApplySettingsTest(ScriptTestCase):
         self.write("claude/settings.json", '{"permissions": {"allow": ["Bash(ls *)"]}}')
         self.apply()
         first_settings = self.read("claude/settings.json")
-        first_guard_conf = self.read("pilot-home/guard.conf")
 
         result = self.apply()
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.read("claude/settings.json"), first_settings)
-        self.assertEqual(self.read("pilot-home/guard.conf"), first_guard_conf)
         self.assertEqual(self.read("claude/settings.json.before-railway-pilot"), '{"permissions": {"allow": ["Bash(ls *)"]}}')
         self.assertEqual(sorted(os.listdir(self.path("claude"))), ["settings.json", "settings.json.before-railway-pilot"])
-        self.assertEqual(os.listdir(self.path("pilot-home")), ["guard.conf"])
+
+    def test_given_a_later_run_with_another_repository_then_the_first_backup_is_kept(self):
+        self.write("claude/settings.json", '{"model": "opus"}')
+        self.apply()
+
+        result = self.apply(replaced("--repo", "acme/moved"))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.settings()["extraKnownMarketplaces"]["railway-pilot"]["source"]["repo"], "acme/moved")
+        self.assertEqual(self.read("claude/settings.json.before-railway-pilot"), '{"model": "opus"}')
 
     def test_given_a_second_run_after_creating_the_file_then_no_backup_of_our_own_file_appears(self):
         self.apply()
@@ -145,32 +132,6 @@ class ApplySettingsTest(ScriptTestCase):
         self.apply()
 
         self.assertEqual(os.listdir(self.path("claude")), ["settings.json"])
-
-    def test_given_new_branches_for_the_same_project_then_guard_conf_is_updated(self):
-        self.apply()
-
-        result = self.apply(
-            ["--saas-project", SAAS_PROJECT_ID.upper(), "--deployed-branch", "release/live", "--marketplace", "railway-pilot", "--repo", "acme/railway-pilot"]
-        )
-
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(
-            self.read("pilot-home/guard.conf"),
-            "SAAS_PROJECT_ID={}\nDEPLOYED_BRANCH=release/live\nTEST_BRANCH=\n".format(SAAS_PROJECT_ID),
-        )
-
-    def test_given_another_saas_project_than_the_recorded_one_then_it_is_refused_and_nothing_changes(self):
-        self.apply()
-        guard_conf = self.read("pilot-home/guard.conf")
-        settings = self.read("claude/settings.json")
-
-        result = self.apply(replaced("--saas-project", OTHER_PROJECT_ID))
-
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("maintainer", result.stderr)
-        self.assertIn("guard.conf", result.stderr)
-        self.assertEqual(self.read("pilot-home/guard.conf"), guard_conf)
-        self.assertEqual(self.read("claude/settings.json"), settings)
 
     def test_given_settings_that_cannot_be_parsed_then_nothing_is_written(self):
         cases = (
@@ -194,10 +155,9 @@ class ApplySettingsTest(ScriptTestCase):
                 with open(self.path("claude/settings.json"), "rb") as handle:
                     self.assertEqual(handle.read(), content)
                 self.assertEqual(os.listdir(self.path("claude")), ["settings.json"])
-                self.assertEqual(os.listdir(self.path("pilot-home")), [])
 
     @unittest.skipIf(os.geteuid() == 0, "root ignores folder permissions")
-    def test_given_a_settings_folder_that_is_not_writable_then_nothing_is_written_at_all(self):
+    def test_given_a_settings_folder_that_is_not_writable_then_nothing_is_written(self):
         self.write("claude/settings.json", '{"model": "opus"}')
         os.chmod(self.path("claude"), stat.S_IRUSR | stat.S_IXUSR)
         self.addCleanup(os.chmod, self.path("claude"), stat.S_IRWXU)
@@ -208,7 +168,7 @@ class ApplySettingsTest(ScriptTestCase):
         self.assertIn("writable", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
         self.assertEqual(self.read("claude/settings.json"), '{"model": "opus"}')
-        self.assertEqual(os.listdir(self.path("pilot-home")), [])
+        self.assertEqual(os.listdir(self.path("claude")), ["settings.json"])
 
     def test_given_a_symlinked_settings_file_then_the_link_is_kept(self):
         target = self.write("dotfiles/settings.json", '{"model": "opus"}')
@@ -233,18 +193,16 @@ class ApplySettingsTest(ScriptTestCase):
 
     def test_given_invalid_arguments_then_exit_2_and_nothing_is_written(self):
         cases = (
-            replaced("--saas-project", "not-a-project-id"),
-            replaced("--saas-project", "-" * 36),
-            replaced("--saas-project", "1111111-12222-3333-4444-555555555555"),
-            replaced("--saas-project", SAAS_PROJECT_ID[:-1] + "g"),
-            replaced("--saas-project", SAAS_PROJECT_ID + "0"),
-            replaced("--deployed-branch", "main\nSAAS_PROJECT_ID=other"),
-            replaced("--deployed-branch", ""),
-            replaced("--test-branch", "a b"),
             replaced("--marketplace", "bad name"),
+            replaced("--marketplace", ""),
             replaced("--repo", "no-owner"),
+            replaced("--repo", "a/b/c"),
             ARGUMENTS[2:],
+            ARGUMENTS[:2],
             ARGUMENTS + ["--unknown", "x"],
+            ARGUMENTS + ["--saas-project", "11111111-2222-3333-4444-555555555555"],
+            ARGUMENTS + ["--deployed-branch", "main"],
+            ARGUMENTS + ["--repo"],
         )
 
         for arguments in cases:
@@ -254,5 +212,4 @@ class ApplySettingsTest(ScriptTestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertTrue(result.stderr.strip())
 
-        self.assertFalse(self.exists("pilot-home/guard.conf"))
         self.assertFalse(self.exists("claude"))

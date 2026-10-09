@@ -2,7 +2,7 @@
 
 Add a tool from the Railway template marketplace, connect it to the SaaS data, and build its content.
 
-Every Railway change in this file goes through `sh $SCRIPTS/railway-tools.sh <railway arguments>`. It works in `~/.railway-pilot/tools-project/` and refuses to touch the SaaS project.
+Tools live in their own Railway project, separate from the app, so a tool can never slow down or break the app. Run the Railway commands of this file from `~/.railway-pilot/tools-project/`, which is linked to that project. Check with `railway status` when in doubt: a deployment sent to the wrong project lands in the app's project.
 
 ## 1. Find a template
 
@@ -29,23 +29,23 @@ AskUserQuestion with 1 to 3 options, best ranked first and marked recommended. F
 First tool only, create the tools project. `railway whoami --json` lists the workspaces: with several, ask which one pays for the tools.
 
 ```
-sh $SCRIPTS/railway-tools.sh init -n "<company> tools" -w "<workspace name>"
+mkdir -p ~/.railway-pilot/tools-project && cd ~/.railway-pilot/tools-project && railway init -n "<company> tools" -w "<workspace name>"
 ```
 
 Record the project id in `state.md`. Then:
 
 ```
-sh $SCRIPTS/railway-tools.sh deploy -t <code>
+cd ~/.railway-pilot/tools-project && railway deploy -t <code>
 ```
 
-Add `-v "KEY=VALUE"` or `-v "Service.KEY=VALUE"` only for variables the template requires. Follow the deployment with `sh $SCRIPTS/railway-tools.sh status --json` until every service shows `SUCCESS`, and read `sh $SCRIPTS/railway-tools.sh logs -s <service> --lines 50` on failure. Two failures: escalate.
+Add `-v "KEY=VALUE"` or `-v "Service.KEY=VALUE"` only for variables the template requires. Follow the deployment with `railway status --json` until every service shows `SUCCESS`, and read `railway logs -s <service> --lines 50` on failure. Two failures: tell the user and offer another template or a hand-off.
 
 The tool keeps its own data in its own database, from the template. Never point a tool's own storage at the SaaS database.
 
 ## 4. Give it an address
 
 ```
-sh $SCRIPTS/railway-tools.sh domain -s <service>
+cd ~/.railway-pilot/tools-project && railway domain -s <service>
 ```
 
 Give the user the URL and guide the creation of the admin account screen by screen. They choose and keep the password: never ask for it.
@@ -65,7 +65,7 @@ sh $SCRIPTS/create-read-role.sh create <tool> --service <postgres service> [--ex
 - The script prints host, port, database and user. The password is on the clipboard and nowhere else.
 - Tables created in the app later are readable by the tool too. When a new sensitive table appears, run the command again with the longer `--exclude` list.
 
-The script checks that the new access cannot write anything, anywhere in the database, and refuses to finish otherwise. When it fails naming a table, a function or a schema, the database grants everyone a right it should not: nothing was created. Escalate to the developer with the exact message, and do not connect the tool another way.
+The script checks that the new access cannot write anything, anywhere in the database, and refuses to finish otherwise. When it fails naming a table, a function or a schema, the database grants everyone a right it should not: nothing was created. Explain it to the user and offer to hand the exact message to the developer. Connecting the tool with the app's main database password instead would give it full write access: say so if they ask for it.
 
 Guide the user to the tool's database screen and tell them which field receives which value. They paste the password from the clipboard into the password field. Then test the connection from the tool.
 
@@ -106,4 +106,4 @@ A tool not listed here: look for an MCP or API section in its official documenta
 
 ## Removing a tool
 
-Deleting services is blocked for Claude. Revoke the tool's database role first. The tools project belongs to the user: this is the one case where they act in the Railway dashboard themselves. Tell them which project and which services to delete, and that it cannot be undone.
+Revoke the tool's database role first. Say in one sentence what will be deleted and that it cannot be undone, ask once, and on yes run `railway service delete -s <service> -y` from `~/.railway-pilot/tools-project/` for each service of the tool. Update `state.md` and `journal.md`.

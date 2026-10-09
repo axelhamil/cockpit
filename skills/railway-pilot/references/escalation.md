@@ -1,25 +1,16 @@
-# Escalation
+# Hand-off to a developer
 
-Hand off to the SaaS developer. The developer contact and channel are in `state.md`.
+The developer contact and channel are in `state.md`. Handing off is a recommendation the user accepts, or something they ask for. It is never a way to refuse.
 
-## When
+## When to recommend it
 
-Escalate when any of these is true:
+- The change touches authentication, payments, permissions, a migration, the schema or existing data.
+- A bug is rooted in code you cannot verify without running the app.
+- A step failed twice and you do not know why.
+- You cannot tell what an action will do to production.
+- The user asks for a second opinion.
 
-- A code change fails the merge test in `code-changes.md`.
-- A bug is rooted in code and the fix is more than a small presentation change.
-- The request changes the schema, the data, a migration, or the configuration of the SaaS project.
-- A backup must be restored.
-- The request changes security, permissions, database roles or GitHub access.
-- An install or repair step failed twice.
-- The guard hook blocked a command. A block is a decision, not an obstacle.
-- The production impact of an action is unclear.
-
-## What to say
-
-One plain sentence in the client's language: this needs a developer, and why. Then say what happens next and what remains possible meanwhile.
-
-Never look for another route to the same result. Rewording a blocked command, using a different tool to reach the same effect, or asking the client to run it themselves are all workarounds.
+Say it in one sentence and keep working on what you can do. Hand off only when they want it.
 
 ## Hand-off file
 
@@ -35,12 +26,12 @@ Written in the client's language, in this order:
 
 ## Channel
 
-- **GitHub issue**: show the file to the client, ask for confirmation with AskUserQuestion, then `gh issue create --label via-claude`. When a pull request already carries the change, post the hand-off file there with `gh pr comment <number>`, mentioning the developer's handle, instead of opening a second thread.
+- **GitHub issue**: `gh issue create --label via-claude`, then give the client the link. When a pull request already carries the change, post the hand-off file there with `gh pr comment <number>`, mentioning the developer's handle, instead of opening a second thread.
 - **Email**: give the file as a message ready to copy, with a subject line.
 - **No developer configured**: give the file as a summary the client can send to any contractor, and say so.
 
 ## After
 
-- Add a dated line to `journal.md` and a line under `Open escalations` in `state.md`: what was escalated, to whom, the link. Remove the `state.md` line when it is resolved.
-- Offer what stays safe meanwhile: a workaround on the client's side, a message to their end user, a check to run again later.
+- Add a dated line to `journal.md` and a line under `Open escalations` in `state.md`: what was handed off, to whom, the link. Remove the `state.md` line when it is resolved.
+- Offer what can be done meanwhile.
 - At the start of later sessions, when `Open escalations` is not empty, check them (`gh issue list --label via-claude`, `gh pr list --label via-claude`) and tell the client what moved.

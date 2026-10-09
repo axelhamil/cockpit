@@ -5,9 +5,9 @@ A Claude Code plugin for non-technical teams whose SaaS runs on Railway. They ta
 - deploys a tool from the Railway template marketplace (Metabase, n8n, Uptime Kuma), connects it to their data in read-only mode, and builds its content;
 - makes small changes to the app through a pull request;
 - reports health, logs, costs and backups;
-- hands anything bigger to their developer with a file ready to process.
+- hands work to their developer with a file ready to process when a review is the safer route.
 
-A guard hook refuses every Railway command that would change the SaaS project and every push to the deployed branch. It protects against mistakes and against a user pushing Claude to cut corners. It is not a sandbox: what bounds the damage is the GitHub token limited to one repository, the pull request flow, and the backups.
+It is the team's project and the team decides. Claude does what is asked and reports it in plain words. Nothing is blocked, and it asks only before what cannot be undone. What bounds the damage is the GitHub token limited to one repository, the pull request flow, and the backups set up during onboarding.
 
 ## Install
 
@@ -44,7 +44,6 @@ What Claude learns about the business stays in `~/.railway-pilot/` on the Mac. P
 ## Development
 
 ```
-python3 -m unittest discover -s tests/guard
 sh tests/scripts/run.sh
 claude plugin validate .
 claude plugin eval . --scaffold --runs 1
