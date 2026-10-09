@@ -58,6 +58,7 @@ CREATED_BACKUP = "backup"
 MOVED = "move"
 USER_LINE = re.compile(r"^- User:[ \t]*(.*?)\r?$")
 BACKUP_PATH = re.compile(r"backups/v1-[0-9]{8}-[0-9]{6}(-[0-9]+)?")
+PROJECT_ENTRY = re.compile(r"(projects/[a-z0-9-]{1,%d})(/.*)?" % SLUG_LENGTH_LIMIT)
 
 
 class MigrationError(Exception):
@@ -345,17 +346,35 @@ UNDO = {
 }
 
 
-def own_entries(project):
+def project_entries(project):
     memory = os.path.join(project, "memory")
-    files = [TEMPORARY_USER_FILE, PREFERENCES_TARGET, os.path.join(project, ".relink")]
-    files += [os.path.join(project, name) for name in (LEGACY_STATE_FILE,) + PROJECT_FILES]
+    files = [os.path.join(project, name) for name in (".relink", LEGACY_STATE_FILE) + PROJECT_FILES]
     files += [os.path.join(memory, topic + ".md") for topic in PROJECT_TOPICS]
-    directories = [BACKUPS, "projects", project, memory, os.path.dirname(PREFERENCES_TARGET)]
 
     entries = {(CREATED_FILE, path) for path in files}
-    entries |= {(CREATED_DIRECTORY, path) for path in directories}
+    entries |= {(CREATED_DIRECTORY, path) for path in (project, memory)}
     entries |= {(MOVED, os.path.join(project, name)) for name in MOVED_DIRECTORIES}
     return entries
+
+
+def own_entries(project):
+    entries = {(CREATED_FILE, path) for path in (TEMPORARY_USER_FILE, PREFERENCES_TARGET)}
+    entries |= {(CREATED_DIRECTORY, path) for path in (BACKUPS, "projects", os.path.dirname(PREFERENCES_TARGET))}
+
+    if project is None:
+        return entries
+
+    return entries | project_entries(project)
+
+
+def recorded_project(recorded):
+    for _, relative in recorded:
+        match = PROJECT_ENTRY.fullmatch(relative)
+
+        if match:
+            return match.group(1)
+
+    return None
 
 
 class Ledger:
@@ -366,9 +385,15 @@ class Ledger:
     def is_empty(self):
         return os.fstat(self.descriptor).st_size == 0
 
-    def entries(self, project):
-        trusted = own_entries(project) | {(CREATED_BACKUP, path) for path in self.own_backups}
-        return [entry for entry in self.recorded() if entry in trusted]
+    def sorted_entries(self):
+        recorded = self.recorded()
+        known = own_entries(recorded_project(recorded)) | {(CREATED_BACKUP, path) for path in self.own_backups}
+        trusted = [entry for entry in recorded if entry in known]
+        untrusted = [entry for entry in recorded if entry not in known and entry[0] != CREATED_BACKUP]
+        return trusted, untrusted
+
+    def is_trusted(self):
+        return not self.sorted_entries()[1]
 
     def recorded(self):
         os.lseek(self.descriptor, 0, os.SEEK_SET)
@@ -406,10 +431,15 @@ class Ledger:
         except OSError:
             pass
 
-    def undo(self, root, project):
+    def undo(self, root):
+        trusted, untrusted = self.sorted_entries()
+
+        if untrusted:
+            return False
+
         failed = []
 
-        for kind, relative in reversed(self.entries(project)):
+        for kind, relative in reversed(trusted):
             try:
                 UNDO[kind](root, relative)
             except Exception:
@@ -526,7 +556,10 @@ class Migration:
         if self.is_committed():
             raise MigrationError("{} is not a file".format(USER_FILE))
 
-        if not self.ledger.undo(self.root, self.project):
+        if not self.ledger.is_trusted():
+            raise MigrationError("the list left by an interrupted update cannot be trusted")
+
+        if not self.ledger.undo(self.root):
             raise MigrationError("an interrupted update could not be undone")
 
     def roll_back(self):
@@ -537,7 +570,7 @@ class Migration:
             signal.signal(number, signal.SIG_IGN)
 
         try:
-            self.ledger.undo(self.root, self.project)
+            self.ledger.undo(self.root)
         except Exception:
             pass
 

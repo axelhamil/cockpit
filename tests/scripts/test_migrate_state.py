@@ -12,6 +12,8 @@ PROJECT = "projects/acme-studio"
 UPDATED = "state: updated to version 2\n"
 NEWER = "state: written by a newer cockpit, left untouched\n"
 BUSY = "migration: failed (another session is migrating the saved setup)\n"
+UNTRUSTED = "migration: failed (the list left by an interrupted update cannot be trusted)\n"
+PROJECT_LINE = "- Project: Acme Studio (11111111-1111-1111-1111-111111111111)\n"
 IMPORTED = "## Imported\n\n".encode()
 CHANGED = ".changed-after-backup"
 HOLD_THE_LOCK = (
@@ -298,12 +300,11 @@ class MigrateStateTest(ScriptTestCase):
                 self.assertEqual((later.returncode, later.stdout), (0, ""))
                 self.assertEqual(without_backups(self.snapshot(home)), expected)
 
-    def test_given_a_recovery_list_naming_client_files_then_none_of_them_is_touched(self):
+    def test_given_a_recovery_list_naming_client_files_then_the_run_fails_and_none_of_them_is_touched(self):
         self.build_state_v1()
         self.write("cockpit-home/backups/v1-20200101-000000/state.md", "an older backup\n")
         self.write("cockpit-home/projects/other-app/state.md", "another app\n")
         self.write("cockpit-home/memory/notes.md", "mine\n")
-        before = self.snapshot()
         self.write(
             "cockpit-home/.migrating",
             "file domain.md\n"
@@ -319,17 +320,38 @@ class MigrateStateTest(ScriptTestCase):
             "backup backups/v1-20200101-000000\n"
             "backup backups\n",
         )
+        before = self.snapshot()
 
         result = self.migrate()
-        after = self.snapshot()
+        rerun = self.migrate()
 
-        self.assertEqual(result.stdout, UPDATED)
-        self.assertEqual(after[PROJECT + "/memory/domain.md"][2], IMPORTED + before["domain.md"][2])
-        self.assertEqual(after[PROJECT + "/journal.md"], before["journal.md"])
-        self.assertEqual(after[PROJECT + "/secrets/metabase.key"], before["secrets/metabase.key"])
-        self.assertEqual(after[PROJECT + "/repo/src/app.txt"], before["repo/src/app.txt"])
-        for name in ("backups/v1-20200101-000000/state.md", "projects/other-app/state.md", "memory/notes.md"):
-            self.assertEqual(after[name], before[name], name)
+        self.assertEqual(result.stdout, UNTRUSTED)
+        self.assertEqual(rerun.stdout, UNTRUSTED)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_given_the_app_got_its_name_after_a_run_cut_dead_then_one_folder_holds_everything(self):
+        expected = without_backups(self.snapshot(self.finished_tree()))
+
+        for stage in ("built", "renamed"):
+            with self.subTest(stage=stage):
+                home = self.path("named-after-" + stage)
+                self.build_state_v1(home)
+                state = os.path.join(home, "state.md")
+                with open(state, encoding="utf-8") as handle:
+                    named = handle.read()
+                with open(state, "w", encoding="utf-8") as handle:
+                    handle.write(named.replace(PROJECT_LINE, ""))
+
+                interrupted = self.migrate(home, COCKPIT_MIGRATION_KILL_AT=stage)
+                with open(state, "w", encoding="utf-8") as handle:
+                    handle.write(named)
+                resumed = self.migrate(home)
+                later = self.migrate(home)
+
+                self.assertEqual(interrupted.stdout + resumed.stdout, UPDATED)
+                self.assertEqual((later.returncode, later.stdout), (0, ""))
+                self.assertEqual(os.listdir(os.path.join(home, "projects")), ["acme-studio"])
+                self.assertEqual(without_backups(self.snapshot(home)), expected)
 
     def test_given_a_root_file_changed_after_the_commit_then_it_ends_in_the_backup_without_a_word(self):
         self.build_state_v1()
