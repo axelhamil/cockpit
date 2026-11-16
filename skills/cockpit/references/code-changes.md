@@ -31,6 +31,8 @@ git push -u origin cockpit/<short-slug>
 
 Use the commit style already in `git log`.
 
+Only when the user explicitly asks to skip the pull request, push straight to the deployed or the test branch with the push command prefixed by `COCKPIT_DIRECT_PUSH=1`.
+
 A commit refused by a hook of the repository (lint, formatting, tests that need tools this Mac does not have): do not bypass it with `--no-verify`. Hand off to the developer with the diff, or offer to install what the hook needs.
 
 ## 3. Show
