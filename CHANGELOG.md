@@ -1,3 +1,12 @@
+# [2.2.0](https://github.com/axelhamil/cockpit/compare/v2.1.1...v2.2.0) (2026-11-16)
+
+
+### Features
+
+* changes made through Claude show up under your GitHub account ([5596df1](https://github.com/axelhamil/cockpit/commit/5596df1bce88d9f262f4c3ae61a3589fe2712025))
+* changes to the app always go through a pull request, even late on ([f820f28](https://github.com/axelhamil/cockpit/commit/f820f28accb5c7a8bbae1817ba013173d08cb227))
+* cockpit stays in charge for the whole conversation ([7335860](https://github.com/axelhamil/cockpit/commit/7335860635fe528cbd1ec30e8c27bd69f83927e7))
+
 ## [2.1.1](https://github.com/axelhamil/cockpit/compare/v2.1.0...v2.1.1) (2026-10-09)
 
 
