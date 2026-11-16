@@ -375,6 +375,21 @@ class SessionCheckLayoutTest(ScriptTestCase):
         with open(log, encoding="utf-8") as handle:
             self.assertEqual(handle.read().splitlines(), ["link " + app + "/saas-project", "status " + app + "/saas-project"])
 
+    def test_session_context_is_unchanged_when_identity_cannot_be_set(self):
+        self.write_v2_state("acme-studio")
+        without_clone = self.check()
+        repo = self.path("cockpit-home/projects/acme-studio/repo")
+        os.makedirs(repo)
+        subprocess.run(["git", "init", "-q", repo], check=True)
+        subprocess.run(["git", "-C", repo, "config", "user.email", "lea@example.com"], check=True)
+        self.env["GH_BIN"] = self.install_command("gh", "exec sleep 30\n")
+
+        result = self.check(COCKPIT_IDENTITY_WAIT="1")
+
+        self.assert_usable(result)
+        self.assertEqual(result.stderr, "")
+        self.assertEqual(result.stdout, without_clone.stdout)
+
     def test_given_a_railway_that_never_answers_the_relink_then_it_is_stopped_and_the_links_stay_to_refresh(self):
         self.write_v2_state("acme-studio")
         self.write("cockpit-home/projects/acme-studio/saas-project/.keep", "")

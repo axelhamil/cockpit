@@ -2,7 +2,7 @@
 set -eu
 
 if [ "${COCKPIT_TEST:-}" != 1 ]; then
-  unset COCKPIT_MIGRATION_WAIT COCKPIT_RELINK_WAIT
+  unset COCKPIT_MIGRATION_WAIT COCKPIT_RELINK_WAIT COCKPIT_IDENTITY_WAIT
 fi
 
 state_home=${COCKPIT_HOME:-${HOME:-}/.cockpit}
@@ -15,6 +15,7 @@ several_apps_status=4
 current_schema_version=2
 migration_wait_seconds=${COCKPIT_MIGRATION_WAIT:-20}
 relink_wait_seconds=${COCKPIT_RELINK_WAIT:-10}
+identity_wait_seconds=${COCKPIT_IDENTITY_WAIT:-8}
 stop_grace_seconds=5
 updated_state_line='state: updated to version 2'
 aside_state_line='state: version 1 files set aside'
@@ -353,6 +354,10 @@ print_health() {
   sh "$scripts_dir/health-check.sh" --project "$project_slug" 2>/dev/null || :
 }
 
+set_commit_identity() {
+  run_within "$identity_wait_seconds" commit-identity.sh --project "$project_slug" >/dev/null 2>&1 || :
+}
+
 print_context() {
   printf 'cockpit session context\n'
 
@@ -421,6 +426,7 @@ print_context() {
 
   if [ "$onboarding" = complete ] && [ -n "${scripts_dir:-}" ]; then
     print_health
+    set_commit_identity
   fi
 
   recorded_version=$(known_version "$(state_value plugin_version "$user_file")")
