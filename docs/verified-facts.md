@@ -243,6 +243,16 @@ FAIL if <what a wrong or missing response looks like>.
 - A project scheduled for deletion is still listed by railway list --json (with a deletedAt date), and railway link -p <id> answers Project "<id>" not found in workspace (CLI 5.64.1).
 - Railway CLI 5.64.1: railway link -p <id> -e production -s <service name> with no terminal links the folder and its service (exit 0); an unknown service name exits 1.
 
+## Session-long hooks (checked 2026-11-16 by a real run)
+
+- Run: Claude Code 2.1.325 on Linux, `claude -p --plugin-dir <repo> --model sonnet --output-format stream-json --verbose --include-hook-events`, `COCKPIT_HOME` on a complete state for `acme/app`, in a clone whose origin `url` is `https://github.com/acme/app` and `pushurl` a local bare repository.
+- `UserPromptSubmit` command hook: its stdout reaches the model in the same turn (the model quoted the `cockpit:` reminder line verbatim).
+- The `timeout` key (seconds) on a plugin command hook is accepted: `claude plugin validate .` passes and both hooks ran.
+- `PreToolUse` deny JSON on `git push origin main`: the push did not run (the bare repository kept its old `main`), and the model received a tool result marked as an error, reading `PreToolUse:Bash hook error: ` followed by the `permissionDecisionReason`. The turn went on: the model answered after it.
+- A deny from one `PreToolUse` hook wins over an `allow` with `updatedInput` from another hook on the same call (a user-level rewrite hook was present).
+- `gh api user` returns `id` (number) and `login` (string), gh 2.101.0.
+- GitHub noreply address (docs: https://docs.github.com/en/account-and-profile/reference/email-addresses-reference, read 2026-11-16): an account created after July 18, 2017 has `ID+USERNAME@users.noreply.github.com`; the ID-based form keeps commits linked after a username change.
+
 ## Not verified
 
 - Linux musl binary only; macOS arm64/x86_64 binaries and `install.sh` on a Mac not run.
@@ -272,3 +282,6 @@ FAIL if <what a wrong or missing response looks like>.
 - `gh auth status --hostname github.com`, `gh auth logout --hostname github.com`, `gh repo clone <owner>/<repo> <dir>`, `gh pr close <number> --delete-branch`: used in the procedures, not run.
 - `railway usage limit set --soft` effect on a real workspace and who may set it; JSON shape of `usage limit status`; `gh repo view --json viewerPermission` values on a repository the account can only read.
 - `gh issue create [-R] [-t] [-F|--body-file] [-l] [-a|--assignee] [--attach file]` (flags read in the help of gh 2.101.0), `gh issue list --search`, `gh issue comment`: not run.
+- The session-long hooks (`UserPromptSubmit` reminder, `PreToolUse` push redirect) in the Claude Desktop Code tab and in Cowork, on macOS: only run in the CLI on Linux.
+- Whether the model follows the deny reason without telling the user in a real conversation. The live run does not show it: user rules on that machine had the model treat text in tool results as data, so it read the reason and did not act on it. The eval `push-goes-through-a-pull-request` lists Bash in its allowed tools, but its trace grader also passes a pull request that is only planned when the session cannot run commands, so a pass may judge the intent only.
+- An account created before July 18, 2017 that kept the old `USERNAME@users.noreply.github.com` address: whether commits signed with the `ID+USERNAME` form are linked to it without reselecting "Keep my email address private".
